@@ -1,0 +1,10 @@
+- hosts: k8s-master
+  become: true
+  roles:
+    - k8s-master
+    - helm
+
+- hosts: k8s-nodes
+  become: true
+  roles:
+    - k8s-node
