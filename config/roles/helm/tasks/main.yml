@@ -1,0 +1,18 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for helm
+
+- name: Download Helm command line tool
+  ansible.builtin.uri:
+    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+    return_content: true
+    mode: '700'
+  register: helm_install
+
+- name: Install Helm
+  ansible.builtin.command:
+    cmd: bash
+    stdin: "{{ helm_install.content }}"
+    creates: /usr/local/bin/helm                                              # this prevents running if exists
+  environment:
+    DESIRED_VERSION: "{{ helm_version | default('') }}"
