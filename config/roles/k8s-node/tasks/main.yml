@@ -84,15 +84,15 @@
 
 ### Initialize the Kubernetes cluster with kubeadm using the below code (applicable only on master node).
 
-- name: Initialize the Kubernetes cluster using kubeadm
-    command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+  - name: Initialize the Kubernetes cluster using kubeadm
+      command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16
 
 ### Join the nodes to the Kubernetes cluster using below code.
 
-- name: Copy the join command to server location
-  copy: src=join-command dest=/tmp/join-command.sh mode=0777
+  - name: Copy the join command to server location
+    copy: src=join-command dest=/tmp/join-command.sh mode=0777
 
-- name: Join the node to cluster
-  command: sh /tmp/join-command.sh
+  - name: Join the node to cluster
+    command: sh /tmp/join-command.sh
 
 ### 
