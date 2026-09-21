@@ -1,0 +1,7 @@
+all:
+  children:
+    orchestration:
+      hosts:
+        kubernetes:
+          ansible_host: ####
+
