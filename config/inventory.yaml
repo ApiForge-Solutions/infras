@@ -1,6 +1,11 @@
 all:
   children:
-    orchestration:
+    k8s-master:
+      hosts:
+        kubernetes:
+          ansible_host: ####
+
+    k8s-nodes:
       hosts:
         kubernetes:
           ansible_host: ####
