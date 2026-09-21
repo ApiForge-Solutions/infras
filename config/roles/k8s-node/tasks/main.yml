@@ -3,11 +3,11 @@
 # tasks file for k8s-node
 ##### Install Docker and its dependent components.
 
-- hosts: k8s-master
+- hosts: k8s-nodes
   become: true
   tasks:
   - name: Install packages that allow apt to be used over HTTPS
-    apt:
+    ansible.builtin.apt:
       name: "{{ packages }}"
       state: present
       update_cache: yes
@@ -20,17 +20,17 @@
       - software-properties-common
 
   - name: Add an apt signing key for Docker
-    apt_key:
+    ansible.builtin.apt_key:
       url: https://download.docker.com/linux/ubuntu/gpg
       state: present
 
   - name: Add apt repository for stable version
-    apt_repository:
+    ansible.builtin.apt_repository:
       repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
       state: present
 
   - name: Install docker and its dependecies
-    apt: 
+    ansible.builtin.apt: 
       name: "{{ packages }}"
       state: present
       update_cache: yes
@@ -43,25 +43,31 @@
       - docker status
 
   - name: Add user to docker group
-    user:
+    ansible.builtin.user:
       name: "{{ USER }}"
       group: docker
 
-### Kubelet will not start if the system has swap enabled, so we are disabling swap using the below code.
+### Disable swap.
 
-  - name: Add an apt signing key for Kubernetes
-    apt_key:
-      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-      state: present
+  - name: Create directory for Kubernetes apt keyrings
+    ansible.builtin.file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
 
-  - name: Adding apt repository for Kubernetes
-    apt_repository:
-      repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
-      state: present
-      filename: kubernetes.list
+  - name: Add Kubernetes apt signing key
+    ansible.builtin.get_url:
+      url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+      dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+      mode: '0644'
+
+  - name: Add Kubernetes apt repository
+    ansible.builtin.copy:
+      dest: /etc/apt/sources.list.d/kubernetes.list
+      content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"
 
   - name: Install Kubernetes binaries
-    apt: 
+    ansible.builtin.apt: 
       name: "{{ packages }}"
       state: present
       update_cache: yes
@@ -72,27 +78,25 @@
         - kubectl
 
   - name: Configure node ip
-    lineinfile:
+    ansible.builtin.lineinfile:
       path: /etc/default/kubelet
       line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
 
   - name: Restart kubelet
-    service:
+    ansible.builtin.service:
       name: kubelet
       daemon_reload: yes
       state: restarted
 
-### Initialize the Kubernetes cluster with kubeadm using the below code (applicable only on master node).
+### Initialize the Kubernetes cluster.
 
   - name: Initialize the Kubernetes cluster using kubeadm
-      command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10"  --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+    ansible.builtin.command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
 
-### Join the nodes to the Kubernetes cluster using below code.
+### Join the nodes to the Kubernetes cluster.
 
   - name: Copy the join command to server location
-    copy: src=join-command dest=/tmp/join-command.sh mode=0777
+    ansible.builtin.copy: src=join-command dest=/tmp/join-command.sh mode=0777
 
   - name: Join the node to cluster
-    command: sh /tmp/join-command.sh
-
-### 
+    ansible.builtin.command: sh /tmp/join-command.sh
