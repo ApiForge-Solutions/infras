@@ -24,7 +24,7 @@
 
 - name: Add apt repository for stable version
   ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"    #{{ ansible_distribution_release }}
     state: present
     filename: docker
 
@@ -47,12 +47,7 @@
     regexp: '^(\s*)SystemdCgroup\s*='
     line: '            SystemdCgroup = true'
     backrefs: yes
-
-- name: Restart and enable containerd
-  ansible.builtin.systemd:
-    name: containerd
-    state: restarted
-    enabled: yes
+  notify: restart and enable containerd
 
 - name: Add user to docker group
   ansible.builtin.user:
@@ -97,14 +92,36 @@
   ansible.builtin.lineinfile:
     path: /etc/default/kubelet
     line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
-
-- name: Restart kubelet
-  ansible.builtin.service:
-    name: kubelet
-    daemon_reload: yes
-    state: restarted
+  notify:
+    - restart kubelet
 
 ### Initialize the Kubernetes cluster. ###########################################################################################################################################################################################
+
+- name: Load br_netfilter kernel module
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Ensure br_netfilter loads on boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      br_netfilter
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure Kubernetes networking sysctls
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    reload: true
+  loop:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
 
 - name: Initialize the Kubernetes cluster using kubeadm
   ansible.builtin.command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
