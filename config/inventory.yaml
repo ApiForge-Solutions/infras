@@ -1,12 +1,14 @@
 all:
   children:
-    k8s-master:
+
+    k8s.master:
       hosts:
         kubernetes:
           ansible_host: ####
+          http_port: ####
 
-    k8s-nodes:
+    k8s.nodes:
       hosts:
         kubernetes:
           ansible_host: ####
-
+          http_port: ####
