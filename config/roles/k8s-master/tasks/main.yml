@@ -12,11 +12,11 @@
     update_cache: yes
   vars:
     packages:
-    - apt-transport-https
-    - ca-certificates
-    - curl
-    - gnupg-agent
-    - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
 
 - name: Add an apt signing key for Docker
   ansible.builtin.apt_key:
@@ -25,7 +25,7 @@
 
 - name: Add apt repository for stable version
   ansible.builtin.apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
     state: present
 
 - name: Install docker and its dependecies
@@ -35,9 +35,9 @@
     update_cache: yes
   vars:
     packages:
-    - docker-ce 
-    - docker-ce-cli 
-    - containerd.io
+      - docker-ce 
+      - docker-ce-cli 
+      - containerd.io
   notify:
     - docker status
 
