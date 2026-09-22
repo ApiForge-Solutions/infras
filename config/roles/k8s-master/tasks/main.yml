@@ -49,6 +49,12 @@
     backrefs: yes
   notify: restart and enable containerd
 
+- name: Wait for containerd socket
+  ansible.builtin.wait_for:
+    path: /run/containerd/containerd.sock
+    state: present
+    timeout: 30
+
 - name: Add user to docker group
   ansible.builtin.user:
     name: "{{ USER }}"
@@ -123,17 +129,8 @@
     - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
     - { name: 'net.ipv4.ip_forward', value: '1' }
 
-- name: Reset any previous kubeadm initialization
-  ansible.builtin.command:
-    cmd: kubeadm reset -f
-  register: kubeadm_reset
-  changed_when: "'no kubeadm configuration' not in kubeadm_reset.stdout"
-  failed_when: false
 
-- name: Remove stale CNI configuration
-  ansible.builtin.file:
-    path: /etc/cni/net.d
-    state: absent
+
 
 - name: Initialize the Kubernetes cluster using kubeadm
   ansible.builtin.command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
