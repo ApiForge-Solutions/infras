@@ -2,7 +2,6 @@
 ---
 # tasks file for k8s-master
 
-### Do not forget "become: true" in root
 ##### Install Docker and its dependent components.
 
 - name: Install packages that allow apt to be used over HTTPS
@@ -25,8 +24,9 @@
 
 - name: Add apt repository for stable version
   ansible.builtin.apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
     state: present
+    filename: docker
 
 - name: Install docker and its dependecies
   ansible.builtin.apt: 
@@ -40,6 +40,19 @@
       - containerd.io
   notify:
     - docker status
+
+- name: Configure containerd to use systemd cgroup driver
+  ansible.builtin.lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^(\s*)SystemdCgroup\s*='
+    line: '            SystemdCgroup = true'
+    backrefs: yes
+
+- name: Restart and enable containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+    enabled: yes
 
 - name: Add user to docker group
   ansible.builtin.user:
@@ -75,6 +88,10 @@
       - kubelet 
       - kubeadm 
       - kubectl
+
+- name: Set node IP fact
+  ansible.builtin.set_fact:
+    node_ip: "{{ ansible_default_ipv4.address }}"
 
 - name: Configure node ip
   ansible.builtin.lineinfile:
