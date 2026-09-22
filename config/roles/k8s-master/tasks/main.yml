@@ -41,7 +41,7 @@
   notify:
     - docker status
 
-- name: Configure containerd to use systemd cgroup driver
+- name: Configure containerd to use systemd cgroup driver ##
   ansible.builtin.lineinfile:
     path: /etc/containerd/config.toml
     regexp: '^(\s*)SystemdCgroup\s*='
@@ -104,7 +104,7 @@
     daemon_reload: yes
     state: restarted
 
-### Initialize the Kubernetes cluster.
+### Initialize the Kubernetes cluster. ###########################################################################################################################################################################################
 
 - name: Initialize the Kubernetes cluster using kubeadm
   ansible.builtin.command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
