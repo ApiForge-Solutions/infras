@@ -19,12 +19,12 @@
 
 - name: Add an apt signing key for Docker
   ansible.builtin.apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
+    url: "{{ DOCKER_SIGNING_KEY }}"
     state: present
 
 - name: Add apt repository for stable version
   ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"    #{{ ansible_distribution_release }}
+    repo: 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] "{{ DOCKER_REPO_URL }}" {{ ansible_facts["distribution_release"] }} stable'    #{{ ansible_distribution_release }}
     state: present
     filename: docker
 
@@ -70,14 +70,14 @@
 
 - name: Add Kubernetes apt signing key
   ansible.builtin.get_url:
-    url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+    url: "{{ KEYRING_SIGNING_KEY_URL }}"
     dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
     mode: '0644'
 
 - name: Add Kubernetes apt repository
   ansible.builtin.copy:
     dest: /etc/apt/sources.list.d/kubernetes.list
-    content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"
+    content: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] "{{ K8S_REPO_URL }}" /'
 
 - name: Install Kubernetes binaries
   ansible.builtin.apt: 
@@ -97,11 +97,11 @@
 - name: Configure node ip
   ansible.builtin.lineinfile:
     path: /etc/default/kubelet
-    line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
+    line: KUBELET_EXTRA_ARGS=--node-ip="{{ node_ip }}"
   notify:
     - restart kubelet
 
-### Initialize the Kubernetes cluster. ###########################################################################################################################################################################################
+### Initialize the Kubernetes cluster.
 
 - name: Load br_netfilter kernel module
   community.general.modprobe:
@@ -129,11 +129,14 @@
     - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
     - { name: 'net.ipv4.ip_forward', value: '1' }
 
-
-
+- name: Check if Kubernetes is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_init_check
 
 - name: Initialize the Kubernetes cluster using kubeadm
-  ansible.builtin.command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+  ansible.builtin.command: kubeadm init --apiserver-advertise-address="{{ node_ip }}" --apiserver-cert-extra-sans="{{ node_ip }}" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+  when: not k8s_init_check.stat.exists
 
 ### Setup the kube config file for user to access the Kubernetes cluster.
 
@@ -147,8 +150,8 @@
 ### Setup the container networking provider and the network policy engine.
 
 - name: Install calico pod network
+  ansible.builtin.command: kubectl apply -f "{{ CALICO_REPO }}"
   become: false
-  ansible.builtin.command: kubectl create -f https://docs.projectcalico.org/v3.4/getting-started/kubernetes/installation/hosted/calico.yaml
 
 ### Generate kube join command.
 
@@ -157,4 +160,7 @@
   register: join_command
 
 - name: Copy join command to local file
-  local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
+  ansible.builtin.copy:
+    content: "{{ join_command.stdout_lines[0] }}"
+    dest: '/home/"{{ USER }}"/"{{ ansible_role_name }}"/files/join-command'
+  delegate_to: localhost
