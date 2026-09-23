@@ -4,15 +4,14 @@
 
 - name: Download Helm command line tool
   ansible.builtin.uri:
-    url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+    url: "{{ HELM_REPO }}"
     return_content: true
-    mode: '700'
   register: helm_install
 
 - name: Install Helm
   ansible.builtin.command:
     cmd: bash
     stdin: "{{ helm_install.content }}"
-    creates: /usr/local/bin/helm                                              # this prevents running if exists
+    creates: /usr/local/bin/helm                                              
   environment:
     DESIRED_VERSION: "{{ helm_version | default('') }}"

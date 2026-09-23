@@ -1,3 +1,4 @@
+# k8s basic vars
 DOCKER_SIGNING_KEY: https://download.docker.com/linux/ubuntu/gpg
 DOCKER_REPO_URL: https://download.docker.com/linux/ubuntu
 KEYRING_SIGNING_KEY_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
