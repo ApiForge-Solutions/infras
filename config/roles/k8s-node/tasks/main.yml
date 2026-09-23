@@ -2,7 +2,6 @@
 ---
 # tasks file for k8s-node
 
-### Do not forget "become: true" in root
 ##### Install Docker and its dependent components.
 
 - name: Install packages that allow apt to be used over HTTPS
@@ -12,21 +11,22 @@
     update_cache: yes
   vars:
     packages:
-    - apt-transport-https
-    - ca-certificates
-    - curl
-    - gnupg-agent
-    - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
 
 - name: Add an apt signing key for Docker
   ansible.builtin.apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
+    url: "{{ DOCKER_SIGNING_KEY }}"
     state: present
 
 - name: Add apt repository for stable version
   ansible.builtin.apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    repo: 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] "{{ DOCKER_REPO_URL }}" {{ ansible_facts["distribution_release"] }} stable'    #{{ ansible_distribution_release }}
     state: present
+    filename: docker
 
 - name: Install docker and its dependecies
   ansible.builtin.apt: 
@@ -35,11 +35,25 @@
     update_cache: yes
   vars:
     packages:
-    - docker-ce 
-    - docker-ce-cli 
-    - containerd.io
+      - docker-ce 
+      - docker-ce-cli 
+      - containerd.io
   notify:
     - docker status
+
+- name: Configure containerd to use systemd cgroup driver ##
+  ansible.builtin.lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^(\s*)SystemdCgroup\s*='
+    line: '            SystemdCgroup = true'
+    backrefs: yes
+  notify: restart and enable containerd
+
+- name: Wait for containerd socket
+  ansible.builtin.wait_for:
+    path: /run/containerd/containerd.sock
+    state: present
+    timeout: 30
 
 - name: Add user to docker group
   ansible.builtin.user:
@@ -56,14 +70,14 @@
 
 - name: Add Kubernetes apt signing key
   ansible.builtin.get_url:
-    url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+    url: "{{ KEYRING_SIGNING_KEY_URL }}"
     dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
     mode: '0644'
 
 - name: Add Kubernetes apt repository
   ansible.builtin.copy:
     dest: /etc/apt/sources.list.d/kubernetes.list
-    content: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"
+    content: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] "{{ K8S_REPO_URL }}" /'
 
 - name: Install Kubernetes binaries
   ansible.builtin.apt: 
@@ -76,23 +90,55 @@
       - kubeadm 
       - kubectl
 
+- name: Set node IP fact
+  ansible.builtin.set_fact:
+    node_ip: "{{ ansible_default_ipv4.address }}"
+
 - name: Configure node ip
   ansible.builtin.lineinfile:
     path: /etc/default/kubelet
-    line: KUBELET_EXTRA_ARGS=--node-ip={{ node_ip }}
-
-- name: Restart kubelet
-  ansible.builtin.service:
-    name: kubelet
-    daemon_reload: yes
-    state: restarted
+    line: KUBELET_EXTRA_ARGS=--node-ip="{{ node_ip }}"
+  notify:
+    - restart kubelet
 
 ### Initialize the Kubernetes cluster.
 
-- name: Initialize the Kubernetes cluster using kubeadm
-  ansible.builtin.command: kubeadm init --apiserver-advertise-address="192.168.50.10" --apiserver-cert-extra-sans="192.168.50.10" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+- name: Load br_netfilter kernel module
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
 
-### Join the nodes to the Kubernetes cluster.
+- name: Ensure br_netfilter loads on boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      br_netfilter
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure Kubernetes networking sysctls
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    reload: true
+  loop:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+
+- name: Check if Kubernetes is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_init_check
+
+- name: Initialize the Kubernetes cluster using kubeadm
+  ansible.builtin.command: kubeadm init --apiserver-advertise-address="{{ node_ip }}" --apiserver-cert-extra-sans="{{ node_ip }}" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
+  when: not k8s_init_check.stat.exists
+
+### Join the nodes to the Kubernetes cluster. #################################################################################################################################################################################################################################
 
 - name: Copy the join command to server location
   ansible.builtin.copy: src=join-command dest=/tmp/join-command.sh mode=0777
