@@ -138,10 +138,20 @@
   ansible.builtin.command: kubeadm init --apiserver-advertise-address="{{ node_ip }}" --apiserver-cert-extra-sans="{{ node_ip }}" --node-name k8s-master --pod-network-cidr=192.168.0.0/16
   when: not k8s_init_check.stat.exists
 
-### Join the nodes to the Kubernetes cluster. #################################################################################################################################################################################################################################
+### Join the nodes to the Kubernetes cluster.
+
+- name: Check if node already joined cluster
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: k8s_join_check
 
 - name: Copy the join command to server location
-  ansible.builtin.copy: src=join-command dest=/tmp/join-command.sh mode=0777
+  ansible.builtin.copy:
+    src: join-command
+    dest: /tmp/join-command.sh
+    mode: '0700'
+  when: not k8s_join_check.stat.exists
 
 - name: Join the node to cluster
   ansible.builtin.command: sh /tmp/join-command.sh
+  when: not k8s_join_check.stat.exists
