@@ -1,14 +1,18 @@
 all:
   children:
 
-    k8s.master:
+    k8s.masters:
       hosts:
-        kubernetes:
-          ansible_host: ####
-          http_port: ####
+        master_01:
+          ansible_host: 10.10.10.104
+        master_02:
+          ansible_host: 10.10.10.100
+        master_03:
+          ansible_host: 10.10.10.105
 
-    k8s.nodes:
+    k8s.workers:
       hosts:
-        kubernetes:
-          ansible_host: ####
-          http_port: ####
+        worker_01:
+          ansible_host: 10.10.10.103
+        worker_02:
+          ansible_host: 10.10.10.106

@@ -1,7 +1,3 @@
-#SPDX-License-Identifier: MIT-0
----
-# tasks file for traefik
-
 # roles/traefik/tasks/main.yml
 #SPDX-License-Identifier: MIT-0
 ---
@@ -22,8 +18,8 @@
 
 - name: Render Traefik Helm values
   ansible.builtin.template:
-    src: values.yaml.j2
-    dest: /tmp/traefik-values.yaml
+    src: traefik-values.yml.j2
+    dest: /tmp/traefik-values.yml
   vars:
     dashboard_user: "{{ vault_dashboard_user }}"
     dashboard_password: "{{ vault_dashboard_password }}"
@@ -42,9 +38,9 @@
       spec:
         secretName: dashboard-tls
         dnsNames:
-          - "dashboard.{{ terraform_app_domain }}"
+          - "traefik.{{ terraform_app_domain }}"
         issuerRef:
-          name: letsencrypt-prod
+          name: "{{ letsencrypt_issuer | default('letsencrypt-staging') }}"
           kind: ClusterIssuer
 
 - name: Deploy Traefik via Helm
@@ -53,8 +49,10 @@
     chart_ref: traefik/traefik
     release_namespace: traefik
     create_namespace: true
+    chart_version: "{{ traefik_chart_version }}"
     values_files:
-      - /tmp/traefik-values.yaml
+      - /tmp/traefik-values.yml
+    wait: true
     kubeconfig: "{{ kubeconfig_path }}"
 
 - name: Wait for Traefik deployment to be available

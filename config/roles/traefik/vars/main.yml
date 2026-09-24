@@ -1,8 +1,7 @@
+# roles/traefik/vars/main.yml
 #SPDX-License-Identifier: MIT-0
 ---
 # vars file for traefik
-
-### username and password to define
 
 kubeconfig_path: /home/ubuntu/.kube/config
 traefik_log_level: INFO

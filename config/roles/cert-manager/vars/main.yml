@@ -1,4 +1,3 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # vars file for cert-manager
-PYTHON_VENV_PATH = /opt/ansible-venv   # Chose "/opt/" because User is unkown so far
