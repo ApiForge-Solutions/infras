@@ -1,19 +1,52 @@
-# roles/traefik/templates/values.yaml.j2
-# Configure Network Ports and EntryPoints
-# EntryPoints are the network listeners for incoming traffic.
+###############################################################################
+# Traefik Helm Values - Gateway API + Ingress + IngressRoute, TLS via cert-manager
+# NOTE: no certResolvers here — TLS certificates are managed by cert-manager,
+# not by Traefik itself.
+###############################################################################
+
+image:
+  tag: "{{ traefik_version }}"
+
+deployment:
+  replicas: "{{ traefik_replicas | default(2) }}"
+
+# Enable all three routing providers: IngressRoute (our own routes),
+# Ingress (for upstream charts like ArgoCD that only support plain Ingress),
+# and Gateway API (forward-compatible, some charts are moving to it).
+providers:
+  kubernetesGateway:
+    enabled: true
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: true
 
 ports:
   web:
-    port: 80
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-          permanent: true
-
+    port: 8000
+    exposedPort: 80
+    protocol: TCP
+    # HTTP -> HTTPS redirect priority is lowered so it does NOT intercept
+    # the ACME HTTP-01 challenge path (/.well-known/acme-challenge/...).
+    # cert-manager's solver route has a higher priority (Host+PathPrefix match)
+    # and will win instead of being redirected to HTTPS, where it would fail.
+    redirectTo:
+      port: websecure
+      priority: 10
   websecure:
-    port: 443
+    port: 8443
+    exposedPort: 443
+    protocol: TCP
+    tls:
+      enabled: true
+      # No certResolver: cert-manager provisions certs via Certificate/ClusterIssuer
+
+# LoadBalancer type: MetalLB assigns an IP from its pool and announces it
+# on the LAN. This becomes the cluster's single entry point.
+service:
+  type: LoadBalancer
+  spec:
+    externalTrafficPolicy: Local
 
 api:
   dashboard: true
@@ -39,7 +72,7 @@ extraObjects:
 ingressRoute:
   dashboard:
     enabled: true
-    matchRule: Host(`dashboard.{{ app_domain }}`)
+    matchRule: Host(`traefik.{{ app_domain }}`)
     entryPoints:
       - websecure
     middlewares:
@@ -47,23 +80,24 @@ ingressRoute:
     tls:
       secretName: dashboard-tls
 
-ingressClass:
-  enabled: true
-
-providers:
-  kubernetesIngress:
-    enabled: false
-  kubernetesCRD:
-    enabled: true
-
-# Enable Observability
 log:
   level: "{{ traefik_log_level | default('INFO') }}"
-# This enables access logs, outputting them to Traefik's standard output by default.
+
 accessLog:
   enabled: true
 
-# Enables Prometheus for Metrics
 metrics:
   prometheus:
     enabled: true
+
+resources:
+  requests:
+    cpu: "{{ traefik_cpu_request | default('100m') }}"
+    memory: "{{ traefik_memory_request | default('128Mi') }}"
+  limits:
+    cpu: "{{ traefik_cpu_limit | default('500m') }}"
+    memory: "{{ traefik_memory_limit | default('512Mi') }}"
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
