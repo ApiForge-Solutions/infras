@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fastapi-traefik
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/DataScientest/fastapi-traefik-datascientest-project.git'
+    targetRevision: HEAD
+    path: . # Chemin vers le dossier contenant les manifests Kubernetes de l'app dans le repo
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: fastapi-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

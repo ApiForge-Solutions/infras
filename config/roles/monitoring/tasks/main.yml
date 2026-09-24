@@ -1,0 +1,34 @@
+---
+# tasks file for monitoring
+---
+- name: Créer le namespace monitoring
+  kubernetes.core.k8s:
+    name: "{{ monitoring_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Ajouter le dépôt Helm Prometheus Community
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: https://prometheus-community.github.io/helm-charts
+
+- name: Déployer kube-prometheus-stack
+  kubernetes.core.helm:
+    name: monitoring
+    chart_ref: prometheus-community/kube-prometheus-stack
+    release_namespace: "{{ monitoring_namespace }}"
+    values:
+      grafana:
+        adminPassword: "{{ grafana_admin_password }}"
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          annotations:
+            cert-manager.io/cluster-issuer: "letsencrypt-prod" # Dépend de la config de ton collègue
+          hosts:
+            - "{{ grafana_domain_name }}"
+          tls:
+            - secretName: grafana-tls
+              hosts:
+                - "{{ grafana_domain_name }}"

@@ -1,0 +1,5 @@
+---
+# vars file for velero
+---
+velero_namespace: "velero"
+bucket_name: "velero-backup"
