@@ -1,0 +1,19 @@
+# roles/traefik/tasks/verify.yml
+# Verify Traefik deployment is working correctly
+
+- name: Check Traefik process is running
+  ansible.builtin.command: pgrep -f traefik
+  register: traefik_process
+  changed_when: false
+
+- name: Check Traefik dashboard is accessible
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ traefik_dashboard_port }}/api/overview"
+    status_code: 200
+  register: dashboard_check
+  when: traefik_dashboard_enabled
+
+- name: Display Traefik status
+  ansible.builtin.debug:
+    msg: "Traefik is running with {{ dashboard_check.json.http.routers.total | default(0) }} routers configured"
+  when: traefik_dashboard_enabled

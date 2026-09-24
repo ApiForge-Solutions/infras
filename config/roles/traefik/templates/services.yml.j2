@@ -1,0 +1,19 @@
+# roles/traefik/templates/dynamic/services.yml.j2
+# Dynamic service configuration for Traefik
+
+http:
+  services:
+{% for service in traefik_services %}
+    {{ service.name }}-service:
+      loadBalancer:
+        servers:
+{% for server in service.servers %}
+          - url: "{{ server }}"
+{% endfor %}
+{% if service.health_check | default(false) %}
+        healthCheck:
+          path: "{{ service.health_check_path | default('/health') }}"
+          interval: "{{ service.health_check_interval | default('30s') }}"
+          timeout: "{{ service.health_check_timeout | default('5s') }}"
+{% endif %}
+{% endfor %}

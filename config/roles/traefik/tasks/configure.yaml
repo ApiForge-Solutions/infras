@@ -1,0 +1,38 @@
+# roles/traefik/tasks/configure.yml
+# Deploy Traefik static and dynamic configuration
+
+- name: Deploy Traefik static configuration
+  ansible.builtin.template:
+    src: traefik.yml.j2
+    dest: "{{ traefik_config_dir }}/traefik.yml"
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0640'
+  notify: restart traefik
+
+- name: Deploy dynamic configuration files
+  ansible.builtin.template:
+    src: "dynamic/{{ item }}.yml.j2"
+    dest: "{{ traefik_dynamic_config_dir }}/{{ item }}.yml"
+    owner: "{{ traefik_user }}"
+    group: "{{ traefik_group }}"
+    mode: '0640'
+  loop:
+    - routers
+    - middlewares
+    - services
+
+- name: Deploy systemd service
+  ansible.builtin.template:
+    src: traefik.service.j2
+    dest: /etc/systemd/system/traefik.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart traefik
+
+- name: Start and enable Traefik
+  ansible.builtin.service:
+    name: traefik
+    state: started
+    enabled: true
