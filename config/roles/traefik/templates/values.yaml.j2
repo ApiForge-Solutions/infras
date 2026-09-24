@@ -1,0 +1,69 @@
+# roles/traefik/templates/values.yaml.j2
+# Configure Network Ports and EntryPoints
+# EntryPoints are the network listeners for incoming traffic.
+
+ports:
+  web:
+    port: 80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    port: 443
+
+api:
+  dashboard: true
+  insecure: false
+
+extraObjects:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: dashboard-auth-secret
+    type: kubernetes.io/basic-auth
+    stringData:
+      username: "{{ dashboard_user }}"
+      password: "{{ dashboard_password }}"
+  - apiVersion: traefik.io/v1alpha1
+    kind: Middleware
+    metadata:
+      name: dashboard-auth
+    spec:
+      basicAuth:
+        secret: dashboard-auth-secret
+
+ingressRoute:
+  dashboard:
+    enabled: true
+    matchRule: Host(`dashboard.{{ app_domain }}`)
+    entryPoints:
+      - websecure
+    middlewares:
+      - name: dashboard-auth
+    tls:
+      secretName: dashboard-tls
+
+ingressClass:
+  enabled: true
+
+providers:
+  kubernetesIngress:
+    enabled: false
+  kubernetesCRD:
+    enabled: true
+
+# Enable Observability
+log:
+  level: "{{ traefik_log_level | default('INFO') }}"
+# This enables access logs, outputting them to Traefik's standard output by default.
+accessLog:
+  enabled: true
+
+# Enables Prometheus for Metrics
+metrics:
+  prometheus:
+    enabled: true

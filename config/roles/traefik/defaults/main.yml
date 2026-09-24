@@ -1,26 +1,3 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for traefik
-
-traefik_version: "3.0.0"
-
-traefik_install_dir: /opt/traefik
-traefik_config_dir: /etc/traefik
-traefik_dynamic_config_dir: /etc/traefik/dynamic
-traefik_log_dir: /var/log/traefik
-
-traefik_acme_email: "riwinis821@bullbaby.com"
-
-traefik_dashboard_enabled: true
-
-traefik_dashboard_port: 8080
-traefik_entrypoints:
-  web:
-    address: ":80"
-  websecure:
-    address: ":443"
-
-traefik_log_level: "INFO"
-traefik_access_log: true
-traefik_user: traefik
-traefik_group: traefik

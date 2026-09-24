@@ -1,3 +1,7 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # vars file for traefik
+TRAEFIK_USERNAME: admin
+TRAEFIK_PASSWORD: admin
+
+APP_DOMAIN: ! from Terraform
