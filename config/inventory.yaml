@@ -24,12 +24,12 @@ all:
           ansible_host: 10.10.10.101
         worker_02:
           ansible_host: 10.10.10.102
-    
+
     jenkins:
       hosts:
         jenkins_server:
           ansible_host: 10.10.10.100
-    
+
     minio:
       hosts:
         jenkins_server:

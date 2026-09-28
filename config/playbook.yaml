@@ -1,14 +1,16 @@
-- hosts: k8s-master
+- name: Kubernetes masters config
+  hosts: k8s.masters
   become: true
   roles:
     - k8s
     - k8s-master
     - helm
-    - metallb          
-    - cert-manager      
-    - traefik 
+#    - metallb
+#    - cert-manager
+#    - traefik
 
-- hosts: k8s-nodes
+- name: Kubernetes workers config
+  hosts: k8s.workers
   become: true
   roles:
     - k8s
