@@ -1,3 +1,8 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for metallb
+
+# Version de MetalLB (https://github.com/metallb/metallb/releases)
+metallb_version: "v0.14.9"
+# Plage d'adresses IP que MetalLB peut attribuer aux Services LoadBalancer.
+metallb_ip_range: "10.10.10.200-10.10.10.210" # A verifier

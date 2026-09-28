@@ -1,0 +1,26 @@
+---
+# tasks file for argocd
+---
+- name: Créer le namespace argocd
+  kubernetes.core.k8s:
+    name: argocd
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Ajouter le dépôt Helm Argo
+  kubernetes.core.helm_repository:
+    name: argo
+    repo_url: https://argoproj.github.io/argo-helm
+
+- name: Déployer ArgoCD via Helm
+  kubernetes.core.helm:
+    name: argocd
+    chart_ref: argo/argo-cd
+    release_namespace: argocd
+
+- name: Appliquer la ressource GitOps (FastAPI)
+  kubernetes.core.k8s:
+    state: present
+    src: application.yaml
+    namespace: argocd

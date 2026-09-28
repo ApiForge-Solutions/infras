@@ -1,0 +1,6 @@
+---
+# vars file for monitoring
+---
+monitoring_namespace: "monitoring"
+grafana_admin_password: "admin" 
+grafana_domain_name: "

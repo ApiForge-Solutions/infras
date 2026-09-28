@@ -1,0 +1,47 @@
+---
+# tasks file for velero
+---
+- name: Créer le secret Kubernetes pour les identifiants Velero
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: minio-credentials
+        namespace: "{{ velero_namespace }}"
+      type: Opaque
+      stringData:
+        cloud: |
+          [default]
+          aws_access_key_id={{ minio_root_user }}
+          aws_secret_access_key={{ minio_root_password }}
+
+- name: Ajouter le dépôt Helm Velero
+  kubernetes.core.helm_repository:
+    name: vmware-tanzu
+    repo_url: https://vmware-tanzu.github.io/helm-charts
+
+- name: Déployer Velero via Helm
+  kubernetes.core.helm:
+    name: velero
+    chart_ref: vmware-tanzu/velero
+    release_namespace: "{{ velero_namespace }}"
+    values:
+      credentials:
+        existingSecret: minio-credentials
+      configuration:
+        backupStorageLocation:
+          name: default
+          provider: aws
+          bucket: "{{ bucket_name }}"
+          config:
+            region: minio
+            s3ForcePathStyle: true
+            s3Url: http://minio.{{ velero_namespace }}.svc.cluster.local:9000
+      initContainers:
+        - name: velero-plugin-for-aws
+          image: velero/velero-plugin-for-aws:v1.8.0
+          volumeMounts:
+            - mountPath: /target
+              name: plugins
