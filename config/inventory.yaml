@@ -3,8 +3,8 @@ all:
   vars:
     ansible_user: ubuntu
     ansible_connection: ssh
-    ansible_ssh_private_key_file: /mnt/c/Users/berge/.ssh/id_ed25519  # adapt
-    ansible_ssh_common_args: '-o ProxyCommand="ssh -i /mnt/c/Users/berge/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p root@151.115.96.129"' # adapt
+    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+    ansible_ssh_common_args: '-o ProxyCommand="ssh -i ~/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p root@151.115.96.129"'
 
 
   children:
@@ -28,7 +28,6 @@ all:
       hosts:
         jenkins_server:
           ansible_host: 10.10.10.100
-
     
     minio:
       hosts:
