@@ -1,3 +1,4 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # vars file for helm
+HELM_REPO: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3

@@ -1,0 +1,30 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for k8s-worker
+
+- name: Check if Kubernetes is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_init_check
+
+- name: Initialize the Kubernetes cluster using kubeadm
+  ansible.builtin.command: kubeadm init --apiserver-advertise-address="{{ node_ip }}" --apiserver-cert-extra-sans="{{ node_ip }}" --node-name "{{ ansible_hostname }}" --pod-network-cidr=192.168.0.0/16
+  when: not k8s_init_check.stat.exists
+
+### Join the nodes to the Kubernetes cluster.
+
+- name: Check if node already joined cluster
+  ansible.builtin.stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: k8s_join_check
+
+- name: Copy the join command to server location
+  ansible.builtin.copy:
+    src: join-command
+    dest: /tmp/join-command.sh
+    mode: '0700'
+  when: not k8s_join_check.stat.exists
+
+- name: Join the node to cluster
+  ansible.builtin.command: sh /tmp/join-command.sh
+  when: not k8s_join_check.stat.exists
