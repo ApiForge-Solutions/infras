@@ -6,7 +6,7 @@
   ansible.builtin.uri:
     url: "{{ HELM_REPO }}"
     return_content: true
-  when: inventory_hostname == groups['k8s_masters'][0]
+  when: inventory_hostname == groups['k8s-masters'][0]
   register: helm_install
 
 - name: Install Helm
@@ -16,4 +16,4 @@
     creates: /usr/local/bin/helm
   environment:
     DESIRED_VERSION: "{{ helm_version | default('') }}"
-  when: inventory_hostname == groups['k8s_masters'][0]
+  when: inventory_hostname == groups['k8s-masters'][0]
