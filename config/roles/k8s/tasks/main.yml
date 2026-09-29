@@ -49,13 +49,17 @@
   notify:
     - docker status
 
-- name: Configure containerd to use systemd cgroup driver
-  ansible.builtin.lineinfile:
-    path: /etc/containerd/config.toml
-    regexp: '^(\s*)SystemdCgroup\s*='
-    line: '            SystemdCgroup = true'
-    backrefs: yes
-  notify: restart and enable containerd
+- name: Create default containerd config
+  ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml.generated
+
+- name: Set SystemdCgroup
+ ansible.builtin.replace:
+   path: /etc/containerd/config.toml
+   regexp: 'SystemdCgroup = false'
+   replace: 'SystemdCgroup = true'
+ notify: restart and enable containerd
 
 - name: Wait for containerd socket
   ansible.builtin.wait_for:
@@ -88,14 +92,14 @@
     content: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] "{{ K8S_REPO_URL }}" /'
 
 - name: Install Kubernetes binaries
-  ansible.builtin.apt: 
+  ansible.builtin.apt:
     name: "{{ packages }}"
     state: present
     update_cache: yes
   vars:
     packages:
-      - kubelet 
-      - kubeadm 
+      - kubelet
+      - kubeadm
       - kubectl
 
 - name: Set node IP fact
