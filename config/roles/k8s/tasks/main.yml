@@ -44,19 +44,6 @@
   ansible.builtin.apt:
     update_cache: true
 
-#########################
-- name: Debug docker repo
-  ansible.builtin.shell: "apt-get update 2>&1 | grep -i docker; apt-cache policy docker-ce"
-  register: dbg
-  changed_when: false
-  failed_when: false
-  check_mode: false
-
-- ansible.builtin.debug:
-    var: dbg.stdout_lines
-
-############
-
 - name: Install docker and its dependecies
   ansible.builtin.apt:
     name: "{{ packages }}"
@@ -112,14 +99,19 @@
 
 - name: Add Kubernetes apt signing key
   ansible.builtin.get_url:
-    url: "{{ KEYRING_SIGNING_KEY_URL }}"
+    url: "{{ KUBERNETES_SIGNING_KEY }}"
     dest: "{{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}"
     mode: '0644'
 
 - name: Add Kubernetes apt repository
   ansible.builtin.copy:
     dest: /etc/apt/sources.list.d/kubernetes.list
-    content: 'deb [signed-by={{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}] {{ K8S_REPO_URL }} /'
+    content: "deb [signed-by={{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}] {{ K8S_REPO_URL }} /\n"
+    mode: '0644'
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
 
 - name: Install Kubernetes binaries
   ansible.builtin.apt:
