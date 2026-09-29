@@ -168,3 +168,13 @@
     - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
     - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
     - { name: 'net.ipv4.ip_forward', value: '1' }
+
+###
+
+
+
+- name: Resolve the API endpoint
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\sk8s-api\.lab\.internal$'
+    line: "{{ K8S_API_STOPGAP_IP }} {{ K8S_API_ENDPOINT }}"

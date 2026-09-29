@@ -15,4 +15,5 @@ CALICO_REPO: https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/mani
 
 K8S_REPO_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/
 
-K8S_API_ENDPOINT: 10.10.10.103 ### Not proper HA
+K8S_API_ENDPOINT: k8s-api.lab.internal  ### Not proper HA
+K8S_API_STOPGAP_IP: 10.10.10.103 ### Not proper HA
