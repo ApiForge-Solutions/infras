@@ -26,7 +26,7 @@
 - name: Add an apt signing key for Docker
   ansible.builtin.get_url:
     url: "{{ DOCKER_SIGNING_KEY }}"
-    dest: "{{ DOCKER_KEYRING_PATH }}""{{ DOCKER_KEYRING_FILENAME }}"
+    dest: "{{ [DOCKER_KEYRING_PATH, DOCKER_KEYRING_FILENAME] | path_join }}"
     mode: '0644'
 
 - name: Add Docker apt repository
@@ -37,19 +37,14 @@
     suites: "{{ ansible_facts['distribution_release'] }}"
     components: stable
     architectures: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
-    signed_by: "{{ DOCKER_KEYRING_PATH }}""{{ DOCKER_KEYRING_FILENAME }}"
+    signed_by: "{{ [DOCKER_KEYRING_PATH,DOCKER_KEYRING_FILENAME] | path_join }}"
     state: present
+
+- name: Update apt cache
+  ansible.builtin.apt:
     update_cache: true
 
-#- name: Add apt repository for stable version
-#  ansible.builtin.apt_repository:
-#    repo: "deb [arch={{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }} signed-by=/etc/apt/keyrings/docker.asc] {{ DOCKER_REPO_URL }} {{ ansible_facts['distribution_release'] }} stable"
-#    state: present
-#    filename: docker
-#    update_cache: yes
-
-###########
-
+#########################
 - name: Debug docker repo
   ansible.builtin.shell: "apt-get update 2>&1 | grep -i docker; apt-cache policy docker-ce"
   register: dbg
@@ -79,6 +74,14 @@
   ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
   args:
     creates: /etc/containerd/config.toml.generated
+  register: containerd_cfg
+
+- name: Mark containerd config as generated
+  ansible.builtin.file:
+    path: /etc/containerd/.config_generated
+    state: touch
+    mode: '0644'
+  when: containerd_cfg is changed
 
 - name: Set SystemdCgroup
   ansible.builtin.replace:
@@ -103,20 +106,20 @@
 
 - name: Create directory for Kubernetes apt keyrings
   ansible.builtin.file:
-    path: /etc/apt/keyrings
+    path: "{{ KUBERNETES_KEYRING_PATH }}"
     state: directory
     mode: '0755'
 
 - name: Add Kubernetes apt signing key
   ansible.builtin.get_url:
     url: "{{ KEYRING_SIGNING_KEY_URL }}"
-    dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+    dest: "{{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}"
     mode: '0644'
 
 - name: Add Kubernetes apt repository
   ansible.builtin.copy:
     dest: /etc/apt/sources.list.d/kubernetes.list
-    content: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] "{{ K8S_REPO_URL }}" /'
+    content: 'deb [signed-by={{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}] {{ K8S_REPO_URL }} /'
 
 - name: Install Kubernetes binaries
   ansible.builtin.apt:
