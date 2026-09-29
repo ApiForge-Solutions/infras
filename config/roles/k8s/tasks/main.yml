@@ -83,6 +83,13 @@
     state: restarted
     enabled: true
 
+- name: Resolve the API endpoint
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\s{{ K8S_API_ENDPOINT | regex_escape }}$'
+    line: "{{ K8S_API_STOPGAP_IP }} {{ K8S_API_ENDPOINT }}"
+    state: present
+
 - name: Wait for containerd socket
   ansible.builtin.wait_for:
     path: /run/containerd/containerd.sock
@@ -169,12 +176,3 @@
     - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
     - { name: 'net.ipv4.ip_forward', value: '1' }
 
-###
-
-
-
-- name: Resolve the API endpoint
-  ansible.builtin.lineinfile:
-    path: /etc/hosts
-    regexp: '\sk8s-api\.lab\.internal$'
-    line: "{{ K8S_API_STOPGAP_IP }} {{ K8S_API_ENDPOINT }}"
