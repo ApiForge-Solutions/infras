@@ -9,7 +9,7 @@ all:
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 
   children:
-    k8s.masters:
+    k8s_masters:
       hosts:
         master_01:
           ansible_host: 10.10.10.103
@@ -18,7 +18,7 @@ all:
         master_03:
           ansible_host: 10.10.10.105
 
-    k8s.workers:
+    k8s_workers:
       hosts:
         worker_01:
           ansible_host: 10.10.10.101

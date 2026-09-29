@@ -1,5 +1,5 @@
 - name: Kubernetes masters config
-  hosts: k8s.masters
+  hosts: k8s_masters
   become: true
   roles:
     - k8s
@@ -10,7 +10,7 @@
 #    - traefik
 
 - name: Kubernetes workers config
-  hosts: k8s.workers
+  hosts: k8s_workers
   become: true
   roles:
     - k8s
