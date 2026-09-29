@@ -75,7 +75,13 @@
     path: /etc/containerd/config.toml
     regexp: 'SystemdCgroup = false'
     replace: 'SystemdCgroup = true'
-  notify: restart and enable containerd
+#  notify: restart and enable containerd
+
+- name: Restart and enable containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+    enabled: true
 
 - name: Wait for containerd socket
   ansible.builtin.wait_for:
