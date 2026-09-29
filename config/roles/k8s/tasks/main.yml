@@ -137,7 +137,7 @@
 - name: Configure node ip
   ansible.builtin.lineinfile:
     path: /etc/default/kubelet
-    line: KUBELET_EXTRA_ARGS=--node-ip="{{ node_ip }}"
+    line: KUBELET_EXTRA_ARGS=--node-ip="{{ ansible_facts['default_ipv4']['address'] }}"
   notify:
     - restart kubelet
 
