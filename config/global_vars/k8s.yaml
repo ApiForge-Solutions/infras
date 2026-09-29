@@ -4,3 +4,6 @@ DOCKER_REPO_URL: https://download.docker.com/linux/ubuntu
 KEYRING_SIGNING_KEY_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
 K8S_REPO_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/
 CALICO_REPO: raw.githubusercontent.com/projectcalico/calico/<tag>/manifests/calico.yaml
+
+
+K8S_API_ENDPOINT: 10.10.10.103 ### Not proper HA

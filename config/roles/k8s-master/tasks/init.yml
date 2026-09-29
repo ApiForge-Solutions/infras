@@ -1,0 +1,48 @@
+- name: kubeadm init
+  ansible.builtin.command: >
+    kubeadm init
+    --control-plane-endpoint={{ K8S_API_ENDPOINT }}:6443
+    --upload-certs
+    --apiserver-advertise-address={{ ansible_facts['default_ipv4']['address'] }}
+    --apiserver-cert-extra-sans={{ ansible_facts['default_ipv4']['address'] }}
+    --node-name={{ ansible_facts['hostname'] }}
+    --pod-network-cidr=192.168.0.0/16
+  args:
+    creates: /etc/kubernetes/admin.conf
+
+- name: Create .kube directory for user
+  ansible.builtin.file:
+    path: "/home/{{ USER }}/.kube"
+    state: directory
+    owner: "{{ USER }}"
+    group: "{{ USER }}"
+    mode: '0755'
+
+- name: Copy admin.conf to user's kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ USER }}/.kube/config"
+    remote_src: true
+    owner: "{{ USER }}"
+    group: "{{ USER }}"
+    mode: '0600'
+
+- name: Install Calico pod network
+  ansible.builtin.command: kubectl apply -f {{ CALICO_REPO }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+
+- name: Create join token
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: join_cmd
+  changed_when: false
+
+- name: Upload control-plane certs
+  ansible.builtin.command: kubeadm init phase upload-certs --upload-certs
+  register: cert_out
+  changed_when: false
+
+- name: Store join command as a fact
+  ansible.builtin.set_fact:
+    control_plane_join: "{{ join_cmd.stdout }} --control-plane --certificate-key {{ cert_out.stdout_lines | last }}"

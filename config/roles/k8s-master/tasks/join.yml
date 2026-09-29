@@ -1,0 +1,25 @@
+- name: Join as control-plane node
+  ansible.builtin.command: >
+    {{ hostvars[groups['masters'][0]].control_plane_join }}
+    --apiserver-advertise-address={{ ansible_facts['default_ipv4']['address'] }}
+    --node-name={{ ansible_facts['hostname'] }}
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+  throttle: 1
+
+- name: Create .kube directory for user
+  ansible.builtin.file:
+    path: "/home/{{ USER }}/.kube"
+    state: directory
+    owner: "{{ USER }}"
+    group: "{{ USER }}"
+    mode: '0755'
+
+- name: Copy admin.conf to user's kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ USER }}/.kube/config"
+    remote_src: true
+    owner: "{{ USER }}"
+    group: "{{ USER }}"
+    mode: '0600'
