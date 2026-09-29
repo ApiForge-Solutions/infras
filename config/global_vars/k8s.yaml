@@ -1,9 +1,18 @@
 # k8s basic vars
+USER: ubuntu
+
+DOCKER_KEYRING_PATH: /etc/apt/keyrings/
+DOCKER_KEYRING_FILENAME: docker.asc
+
 DOCKER_SIGNING_KEY: https://download.docker.com/linux/ubuntu/gpg
 DOCKER_REPO_URL: https://download.docker.com/linux/ubuntu
-KEYRING_SIGNING_KEY_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
-K8S_REPO_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/
-CALICO_REPO: raw.githubusercontent.com/projectcalico/calico/<tag>/manifests/calico.yaml
 
+KUBERNETES_SIGNING_KEY: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+KUBERNETES_KEYRING_PATH: /etc/apt/keyrings/
+KUBERNETES_KEYRING_FILENAME: kubernetes-apt-keyring.asc
+
+CALICO_REPO: https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+
+K8S_REPO_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/
 
 K8S_API_ENDPOINT: 10.10.10.103 ### Not proper HA
