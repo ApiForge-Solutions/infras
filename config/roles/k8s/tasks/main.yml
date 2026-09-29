@@ -67,10 +67,11 @@
     state: present
     timeout: 30
 
-- name: Add user to docker group
+- name: Add user to docker groups
   ansible.builtin.user:
     name: "{{ USER }}"
-    group: docker
+    groups: docker
+    append: yes
 
 ### Disable swap.
 
