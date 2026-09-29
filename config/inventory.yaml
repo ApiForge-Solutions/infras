@@ -5,8 +5,8 @@ all:
 
     ansible_connection: ssh
     ansible_ssh_private_key_file: /home/ubuntu/.ssh/id_ed25519
-    ansible_ssh_common_args: '-o ProxyCommand="ssh -i /home/ubuntu/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p root@151.115.96.129"'
-
+    #ansible_ssh_common_args: '-o ProxyCommand="ssh -i /home/ubuntu/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p root@151.115.96.129"'
+      ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
 
   children:
     k8s.masters:
@@ -25,12 +25,7 @@ all:
         worker_02:
           ansible_host: 10.10.10.102
 
-    jenkins:
-      hosts:
-        jenkins_server:
-          ansible_host: 10.10.10.100
-
     minio:
       hosts:
-        jenkins_server:
+        minio_server:
           ansible_host: 10.10.10.106
