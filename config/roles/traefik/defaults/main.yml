@@ -3,12 +3,12 @@
 ---
 # safe-to-override defaults for traefik
 
-traefik_version: "v3.3.2"
-traefik_chart_version: "33.2.1"
-traefik_replicas: 2
-letsencrypt_issuer: letsencrypt-staging   # switch to letsencrypt-prod once validated
+TRAEFIK_VERSION: "v3.3.2"
+TRAEFIK_CHART_VERSION: "33.2.1"
+TRAEFIK_REPLICAS: 2
+LETSENCRYPT_ISSUER: letsencrypt-staging   # switch to letsencrypt-prod once validated
 
-traefik_cpu_request: "100m"
-traefik_memory_request: "128Mi"
-traefik_cpu_limit: "500m"
-traefik_memory_limit: "512Mi"
+TRAEFIK_CPU_REQUEST: "100m"
+TRAEFIK_MEMORY_REQUEST: "128Mi"
+TRAEFIK_CPU_LIMIT: "500m"
+TRAEFIK_MEMORY_LIMIT: "512Mi"

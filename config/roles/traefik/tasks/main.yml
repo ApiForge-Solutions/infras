@@ -34,12 +34,7 @@
         dashboard_password: "{{ VAULT_DASHBOARD_PASSWORD }}"
         app_domain: "{{ TERRAFORM_APP_DOMAIN }}"
 
-    - name: Remove rendered values for security
-      ansible.builtin.file:
-        path: /tmp/traefik-values.yml
-        state: absent
-
-    - name: Request TLS certificate for the Traefik dashboard
+   - name: Request TLS certificate for the Traefik dashboard
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ KUBECONFIG_PATH }}"
@@ -68,3 +63,8 @@
           - /tmp/traefik-values.yml
         wait: true
         kubeconfig: "{{ KUBECONFIG_PATH }}"
+
+    - name: Remove rendered values for security
+      ansible.builtin.file:
+        path: /tmp/traefik-values.yml
+        state: absent
