@@ -1,28 +1,58 @@
+# roles/cert-manager/tasks/main.yml
 #SPDX-License-Identifier: MIT-0
 ---
-# tasks file for cert-manager
+- name: Deploy cert-manager (first master only)
+  run_once: true
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  environment:
+    KUBECONFIG: "{{ KUBECONFIG_PATH }}"
+  block:
+    - name: Add cert-manager Helm repo
+      kubernetes.core.helm_repository:
+        name: jetstack
+        repo_url: https://charts.jetstack.io
 
-- name: Add cert-manager Helm repo
-  kubernetes.core.helm_repository:
-    name: jetstack
-    repo_url: https://charts.jetstack.io
+    - name: Deploy cert-manager via Helm
+      kubernetes.core.helm:
+        name: cert-manager
+        chart_ref: jetstack/cert-manager
+        chart_version: "{{ CERT_MANAGER_CHART_VERSION }}"
+        release_namespace: "{{ CERT_MANAGER_NAMESPACE }}"
+        create_namespace: true
+        wait: true
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        values:
+          crds:
+            enabled: true
 
-- name: Deploy cert-manager via Helm
-  kubernetes.core.helm:
-    name: cert-manager
-    chart_ref: jetstack/cert-manager
-    release_namespace: cert-manager
-    create_namespace: true
-    kubeconfig: /home/ubuntu/.kube/config
-    values:
-      installCRDs: true
+    - name: Wait for cert-manager webhook to be ready
+      ansible.builtin.command: >
+        kubectl wait --for=condition=Available
+        deployment/cert-manager-webhook
+        -n {{ CERT_MANAGER_NAMESPACE }} --timeout=120s
+      changed_when: false
 
-- name: Wait for cert-manager webhook to be ready
-  ansible.builtin.command: kubectl wait --for=condition=Available deployment/cert-manager-webhook -n cert-manager --timeout=120s
-  changed_when: false
-
-- name: Apply ClusterIssuer
-  kubernetes.core.k8s:
-    state: present
-    src: /tmp/clusterissuer.yaml
-    kubeconfig: /home/ubuntu/.kube/config
+    - name: Apply ClusterIssuers
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: ClusterIssuer
+          metadata:
+            name: "{{ item.name }}"
+          spec:
+            acme:
+              email: "{{ CERT_MANAGER_ACME_EMAIL }}"
+              server: "{{ item.server }}"
+              privateKeySecretRef:
+                name: "{{ item.name }}-key"
+              solvers:
+                - http01:
+                    ingress:
+                      ingressClassName: traefik
+      loop: "{{ CERT_MANAGER_ISSUERS }}"
+      register: issuer_result
+      retries: 5
+      delay: 10
+      until: issuer_result is succeeded

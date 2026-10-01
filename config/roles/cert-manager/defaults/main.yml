@@ -1,3 +1,10 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for cert-manager
+CERT_MANAGER_NAMESPACE: cert-manager
+CERT_MANAGER_CHART_VERSION: "v1.17.1"   # verify with helm search repo
+CERT_MANAGER_ISSUERS:
+  - name: letsencrypt-staging
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+  - name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
