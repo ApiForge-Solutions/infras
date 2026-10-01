@@ -20,6 +20,13 @@
 - name: Cluster add-ons
   hosts: k8s_masters
   become: true
+  pre_tasks:
+    - name: Wait for all nodes to be Ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout=300s
+      environment:
+        KUBECONFIG: "{{ KUBECONFIG_PATH }}"
+      run_once: true
+      changed_when: false
   roles:
     - metallb
 #    - cert-manager
