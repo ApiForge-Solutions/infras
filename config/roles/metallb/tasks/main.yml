@@ -1,51 +1,53 @@
-#SPDX-License-Identifier: MIT-0
 ---
-# tasks file for metallb
----
-- name: Créer le namespace metallb-system
-  kubernetes.core.k8s:
-    name: "{{ metallb_namespace }}"
-    api_version: v1
-    kind: Namespace
-    state: present
+- name: Deploy MetalLB (first master only)
+  run_once: true
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  environment:
+    KUBECONFIG: "{{ KUBECONFIG_PATH }}"
+  block:
+    - name: Add MetalLB Helm repository
+      kubernetes.core.helm_repository:
+        name: metallb
+        repo_url: "{{ METALLB_REPO_URL }}"
 
-- name: Ajouter le dépôt Helm MetalLB
-  kubernetes.core.helm_repository:
-    name: metallb
-    repo_url: https://metallb.github.io/metallb
+    - name: Deploy MetalLB via Helm
+      kubernetes.core.helm:
+        name: metallb
+        chart_ref: metallb/metallb
+        chart_version: "{{ METALLB_VERSION }}"
+        release_namespace: "{{ METALLB_NAMESPACE }}"
+        create_namespace: true
+        wait: true
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
 
-- name: Déployer MetalLB via Helm
-  kubernetes.core.helm:
-    name: metallb
-    chart_ref: metallb/metallb
-    release_namespace: "{{ metallb_namespace }}"
-    version: "0.14.3" 
-    wait: true
+    - name: Configure IPAddressPool
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        definition:
+          apiVersion: metallb.io/v1beta1
+          kind: IPAddressPool
+          metadata:
+            name: default-pool
+            namespace: "{{ METALLB_NAMESPACE }}"
+          spec:
+            addresses:
+              - "{{ METALLB_IP_RANGE }}"
+      register: pool_result
+      retries: 5
+      delay: 10
+      until: pool_result is succeeded
 
-- name: Configurer le pool d'adresses IP (IPAddressPool)
-  kubernetes.core.k8s:
-    state: present
-    namespace: "{{ metallb_namespace }}"
-    definition:
-      apiVersion: metallb.io/v1beta1
-      kind: IPAddressPool
-      metadata:
-        name: default-pool
-        namespace: "{{ metallb_namespace }}"
-      spec:
-        addresses:
-          - "{{ metallb_ip_range }}"
-
-- name: Activer l'annonce de niveau 2 (L2Advertisement)
-  kubernetes.core.k8s:
-    state: present
-    namespace: "{{ metallb_namespace }}"
-    definition:
-      apiVersion: metallb.io/v1beta1
-      kind: L2Advertisement
-      metadata:
-        name: default-l2
-        namespace: "{{ metallb_namespace }}"
-      spec:
-        ipAddressPools:
-          - default-pool
+    - name: Enable L2Advertisement
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        definition:
+          apiVersion: metallb.io/v1beta1
+          kind: L2Advertisement
+          metadata:
+            name: default-l2
+            namespace: "{{ METALLB_NAMESPACE }}"
+          spec:
+            ipAddressPools:
+              - default-pool
