@@ -9,13 +9,13 @@
       kind: Secret
       metadata:
         name: minio-credentials
-        namespace: "{{ velero_namespace }}"
+        namespace: "{{ VELERO_NAMESPACE }}"
       type: Opaque
       stringData:
         cloud: |
           [default]
-          aws_access_key_id={{ minio_root_user }}
-          aws_secret_access_key={{ minio_root_password }}
+          aws_access_key_id="{{ MINIO_ROOT_USER }}"
+          aws_secret_access_key="{{ MINIO_ROOT_PASSWORD }}"
 
 - name: Ajouter le dépôt Helm Velero
   kubernetes.core.helm_repository:
@@ -26,7 +26,7 @@
   kubernetes.core.helm:
     name: velero
     chart_ref: vmware-tanzu/velero
-    release_namespace: "{{ velero_namespace }}"
+    release_namespace: "{{ VELERO_NAMESPACE }}"
     values:
       credentials:
         existingSecret: minio-credentials
@@ -34,11 +34,11 @@
         backupStorageLocation:
           name: default
           provider: aws
-          bucket: "{{ bucket_name }}"
+          bucket: "{{ BUCKET_NAME }}"
           config:
             region: minio
             s3ForcePathStyle: true
-            s3Url: http://minio.{{ velero_namespace }}.svc.cluster.local:9000
+            s3Url: http://minio."{{ VELERO_NAMESPACE }}".svc.cluster.local:9000
       initContainers:
         - name: velero-plugin-for-aws
           image: velero/velero-plugin-for-aws:v1.8.0
