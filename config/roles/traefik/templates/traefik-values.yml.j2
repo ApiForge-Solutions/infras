@@ -5,10 +5,10 @@
 ###############################################################################
 
 image:
-  tag: "{{ traefik_version }}"
+  tag: "{{ TRAEFIK_VERSION }}"
 
 deployment:
-  replicas: "{{ traefik_replicas | default(2) }}"
+  replicas: "{{ TRAEFIK_REPLICAS | default(2) }}"
 
 # Enable all three routing providers: IngressRoute (our own routes),
 # Ingress (for upstream charts like ArgoCD that only support plain Ingress),
@@ -83,7 +83,7 @@ ingressRoute:
       secretName: dashboard-tls
 
 log:
-  level: "{{ traefik_log_level | default('INFO') }}"
+  level: "{{ TRAEFIK_LOG_LEVEL | default('INFO') }}"
 
 accessLog:
   enabled: true
@@ -94,11 +94,11 @@ metrics:
 
 resources:
   requests:
-    cpu: "{{ traefik_cpu_request | default('100m') }}"
-    memory: "{{ traefik_memory_request | default('128Mi') }}"
+    cpu: "{{ TRAEFIK_CPU_REQUEST | default('100m') }}"
+    memory: "{{ TRAEFIK_MEMORY_REQUEST | default('128Mi') }}"
   limits:
-    cpu: "{{ traefik_cpu_limit | default('500m') }}"
-    memory: "{{ traefik_memory_limit | default('512Mi') }}"
+    cpu: "{{ TRAEFIK_CPU_LIMIT | default('500m') }}"
+    memory: "{{ TRAEFIK_MEMORY_LIMIT | default('512Mi') }}"
 
 podDisruptionBudget:
   enabled: true
