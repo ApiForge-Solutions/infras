@@ -15,8 +15,11 @@ CALICO_REPO: https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/mani
 
 K8S_REPO_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/
 
+### NETWORK VARS
 K8S_API_ENDPOINT: k8s-api.internal
 K8S_API_STOPGAP_IP: 10.10.10.110
 KUBECONFIG_PATH: /etc/kubernetes/admin.conf
+METALLB_IP_RANGE: "10.10.10.200-10.10.10.210"
+TRAEFIK_LB_IP: 10.10.10.200
 
 TERRAFORM_APP_DOMAIN: #TO BE DEFINED
