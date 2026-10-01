@@ -10,12 +10,17 @@
   roles:
     - k8s-master
     - helm
-#    - metallb
-#    - cert-manager
-#    - traefik
 
 - name: Kubernetes workers config
   hosts: k8s_workers
   become: true
   roles:
     - k8s-worker
+
+- name: Cluster add-ons
+  hosts: k8s_masters
+  become: true
+  roles:
+    - metallb
+#    - cert-manager
+#    - traefik
