@@ -3,69 +3,68 @@
 ---
 # tasks file for traefik
 
-- name: Create traefik namespace
-  kubernetes.core.k8s:
-    name: "{{ TRAEFIK_NAMESPACE }}"
-    api_version: v1
-    kind: Namespace
-    state: present
-    kubeconfig: "{{ KUBECONFIG_PATH }}"
-
-- name: Add Traefik Helm repo
-  kubernetes.core.helm_repository:
-    name: traefik
-    repo_url: https://traefik.github.io/charts
-
-- name: Render Traefik Helm values
-  ansible.builtin.template:
-    src: traefik-values.yml.j2
-    dest: /tmp/traefik-values.yml
-    mode: '0600'
-  no_log: true
-  vars:
-    dashboard_user: "{{ VAULT_DASHBOARD_USER }}"
-    dashboard_password: "{{ VAULT_DASHBOARD_PASSWORD }}"
-    app_domain: "{{ TERRAFORM_APP_DOMAIN }}"
-
-- name: Remove rendered values for security
-  ansible.builtin.file:
-    path: /tmp/traefik-values.yml
-    state: absent
-
-- name: Request TLS certificate for the Traefik dashboard
-  kubernetes.core.k8s:
-    state: present
-    kubeconfig: "{{ KUBECONFIG_PATH }}"
-    definition:
-      apiVersion: cert-manager.io/v1
-      kind: Certificate
-      metadata:
-        name: dashboard-tls
-        namespace: "{{ TRAEFIK_NAMESPACE }}"
-      spec:
-        secretName: dashboard-tls
-        dnsNames:
-          - "traefik.{{ TERRAFORM_APP_DOMAIN }}"
-        issuerRef:
-          name: "{{ letsencrypt_issuer | default('letsencrypt-staging') }}"
-          kind: ClusterIssuer
-
-- name: Deploy Traefik via Helm
-  kubernetes.core.helm:
-    name: traefik
-    chart_ref: traefik/traefik
-    release_namespace: "{{ TRAEFIK_NAMESPACE }}"
-    create_namespace: true
-    chart_version: "{{ TRAEFIK_CHART_VERSION }}"
-    values_files:
-      - /tmp/traefik-values.yml
-    wait: true
-    kubeconfig: "{{ KUBECONFIG_PATH }}"
-
-- name: Wait for Traefik deployment to be available
-  ansible.builtin.command: >
-    kubectl wait --for=condition=Available deployment/traefik
-    -n "{{ TRAEFIK_NAMESPACE }}" --timeout=120s
+- name: Deploy Traefik (first master only)
+  run_once: true
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
   environment:
     KUBECONFIG: "{{ KUBECONFIG_PATH }}"
-  changed_when: false
+  block:
+
+    - name: Create traefik namespace
+      kubernetes.core.k8s:
+        name: "{{ TRAEFIK_NAMESPACE }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+
+    - name: Add Traefik Helm repo
+      kubernetes.core.helm_repository:
+        name: traefik
+        repo_url: https://traefik.github.io/charts
+
+    - name: Render Traefik Helm values
+      ansible.builtin.template:
+        src: traefik-values.yml.j2
+        dest: /tmp/traefik-values.yml
+        mode: '0600'
+      no_log: true
+      vars:
+        dashboard_user: "{{ VAULT_DASHBOARD_USER }}"
+        dashboard_password: "{{ VAULT_DASHBOARD_PASSWORD }}"
+        app_domain: "{{ TERRAFORM_APP_DOMAIN }}"
+
+    - name: Remove rendered values for security
+      ansible.builtin.file:
+        path: /tmp/traefik-values.yml
+        state: absent
+
+    - name: Request TLS certificate for the Traefik dashboard
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: dashboard-tls
+            namespace: "{{ TRAEFIK_NAMESPACE }}"
+          spec:
+            secretName: dashboard-tls
+            dnsNames:
+              - "traefik.{{ TERRAFORM_APP_DOMAIN }}"
+            issuerRef:
+              name: "{{ letsencrypt_issuer | default('letsencrypt-staging') }}"
+              kind: ClusterIssuer
+
+    - name: Deploy Traefik via Helm
+      kubernetes.core.helm:
+        name: traefik
+        chart_ref: traefik/traefik
+        release_namespace: "{{ TRAEFIK_NAMESPACE }}"
+        create_namespace: true
+        chart_version: "{{ TRAEFIK_CHART_VERSION }}"
+        values_files:
+          - /tmp/traefik-values.yml
+        wait: true
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
