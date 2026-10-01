@@ -6,7 +6,3 @@ METALLB_REPO_URL: https://metallb.github.io/metallb
 
 METALLB_NAMESPACE: metallb-system
 METALLB_VERSION: "0.14.9"
-METALLB_IP_RANGE: "10.10.10.200-10.10.10.210"
-
-KUBECONFIG_PATH: /etc/kubernetes/admin.conf
-
