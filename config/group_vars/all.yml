@@ -1,12 +1,14 @@
-# k8s basic vars
+# all basic vars
 USER: ubuntu
 
+# DOCKER VARS
 DOCKER_KEYRING_PATH: /etc/apt/keyrings/
 DOCKER_KEYRING_FILENAME: docker.asc
 
 DOCKER_SIGNING_KEY: https://download.docker.com/linux/ubuntu/gpg
 DOCKER_REPO_URL: https://download.docker.com/linux/ubuntu
 
+# KUBERNETES VARS
 KUBERNETES_SIGNING_KEY: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
 KUBERNETES_KEYRING_PATH: /etc/apt/keyrings/
 KUBERNETES_KEYRING_FILENAME: kubernetes-apt-keyring.asc
@@ -15,11 +17,18 @@ CALICO_REPO: https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/mani
 
 K8S_REPO_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/
 
-### NETWORK VARS
+# NETWORK VARS
 K8S_API_ENDPOINT: k8s-api.internal
-K8S_API_STOPGAP_IP: 10.10.10.110
+K8S_API_STOPGAP_IP: 10.10.10.103
 KUBECONFIG_PATH: /etc/kubernetes/admin.conf
 METALLB_IP_RANGE: "10.10.10.200-10.10.10.210"
 TRAEFIK_LB_IP: 10.10.10.200
 
-TERRAFORM_APP_DOMAIN: #TO BE DEFINED
+TERRAFORM_APP_DOMAIN: temporary_example.com  #TO BE DEFINED
+
+# STORAGE VARS
+minio_namespace: "velero"
+# MONITORING VARS
+monitoring_namespace: "monitoring"
+# CD VARS
+argocd_namespace: "argocd"

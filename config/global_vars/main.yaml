@@ -1,3 +1,0 @@
-minio_namespace: "velero"
-monitoring_namespace: "monitoring"
-argocd_namespace: "argocd"
