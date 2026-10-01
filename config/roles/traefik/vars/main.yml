@@ -3,5 +3,10 @@
 ---
 # vars file for traefik
 
-kubeconfig_path: /home/ubuntu/.kube/config
-traefik_log_level: INFO
+KUBECONFIG_PATH: /etc/kubernetes/admin.conf
+
+TRAEFIK_LOG_LEVEL: INFO
+
+VAULT_DASHBOARD_USER:
+VAULT_DASHBOARD_PASSWORD:
+TERRAFORM_APP_DOMAIN:

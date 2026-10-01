@@ -9,7 +9,7 @@
     api_version: v1
     kind: Namespace
     state: present
-    kubeconfig: "{{ kubeconfig_path }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
 
 - name: Add Traefik Helm repo
   kubernetes.core.helm_repository:
@@ -21,14 +21,14 @@
     src: traefik-values.yml.j2
     dest: /tmp/traefik-values.yml
   vars:
-    dashboard_user: "{{ vault_dashboard_user }}"
-    dashboard_password: "{{ vault_dashboard_password }}"
-    app_domain: "{{ terraform_app_domain }}"
+    dashboard_user: "{{ VAULT_DASHBOARD_USER }}"
+    dashboard_password: "{{ VAULT_DASHBOARD_PASSWORD }}"
+    app_domain: "{{ TERRAFORM_APP_DOMAIN }}"
 
 - name: Request TLS certificate for the Traefik dashboard
   kubernetes.core.k8s:
     state: present
-    kubeconfig: "{{ kubeconfig_path }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
     definition:
       apiVersion: cert-manager.io/v1
       kind: Certificate
@@ -38,7 +38,7 @@
       spec:
         secretName: dashboard-tls
         dnsNames:
-          - "traefik.{{ terraform_app_domain }}"
+          - "traefik.{{ TERRAFORM_APP_DOMAIN }}"
         issuerRef:
           name: "{{ letsencrypt_issuer | default('letsencrypt-staging') }}"
           kind: ClusterIssuer
@@ -49,16 +49,16 @@
     chart_ref: traefik/traefik
     release_namespace: traefik
     create_namespace: true
-    chart_version: "{{ traefik_chart_version }}"
+    chart_version: "{{ TRAEFIK_CHART_VERSION }}"
     values_files:
       - /tmp/traefik-values.yml
     wait: true
-    kubeconfig: "{{ kubeconfig_path }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
 
 - name: Wait for Traefik deployment to be available
   ansible.builtin.command: >
     kubectl wait --for=condition=Available deployment/traefik
     -n traefik --timeout=120s
   environment:
-    KUBECONFIG: "{{ kubeconfig_path }}"
+    KUBECONFIG: "{{ KUBECONFIG_PATH }}"
   changed_when: false
