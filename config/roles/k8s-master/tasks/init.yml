@@ -12,19 +12,19 @@
 
 - name: Create .kube directory for user
   ansible.builtin.file:
-    path: "/home/{{ USER }}/.kube"
+    path: "/home/{{ ansible_user }}/.kube"
     state: directory
-    owner: "{{ USER }}"
-    group: "{{ USER }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: '0755'
 
 - name: Copy admin.conf to user's kubeconfig
   ansible.builtin.copy:
     src: /etc/kubernetes/admin.conf
-    dest: "/home/{{ USER }}/.kube/config"
+    dest: "/home/{{ ansible_user }}/.kube/config"
     remote_src: true
-    owner: "{{ USER }}"
-    group: "{{ USER }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
     mode: '0600'
 
 - name: Install Calico pod network

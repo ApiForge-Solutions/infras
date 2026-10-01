@@ -1,6 +1,4 @@
 # all basic vars
-USER: ubuntu
-
 # DOCKER VARS
 DOCKER_KEYRING_PATH: /etc/apt/keyrings/
 DOCKER_KEYRING_FILENAME: docker.asc
