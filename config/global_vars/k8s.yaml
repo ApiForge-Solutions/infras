@@ -18,3 +18,5 @@ K8S_REPO_URL: https://pkgs.k8s.io/core:/stable:/v1.28/deb/
 K8S_API_ENDPOINT: k8s-api.internal
 K8S_API_STOPGAP_IP: 10.10.10.110
 KUBECONFIG_PATH: /etc/kubernetes/admin.conf
+
+TERRAFORM_APP_DOMAIN: #TO BE DEFINED
