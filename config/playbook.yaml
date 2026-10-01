@@ -29,5 +29,5 @@
       changed_when: false
   roles:
     - metallb
-#    - cert-manager
-#    - traefik
+    - cert-manager
+    - traefik
