@@ -45,6 +45,8 @@ ports:
 # on the LAN. This becomes the cluster's single entry point.
 service:
   type: LoadBalancer
+  annotations:
+    metallb.io/loadBalancerIPs: "{{ TRAEFIK_LB_IP }}"
   spec:
     externalTrafficPolicy: Local
 
