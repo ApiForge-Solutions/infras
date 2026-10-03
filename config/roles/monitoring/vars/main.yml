@@ -1,6 +1,12 @@
 ---
 # vars file for monitoring
----
-monitoring_namespace: "monitoring"
-grafana_admin_password: "admin" 
-grafana_domain_name: "
+
+MONITORING_NAMESPACE: "monitoring"
+MONITORING_CHART_VERSION: "66.2.1"
+
+PROMETHEUS_RETENTION: "15d"
+PROMETHEUS_STORAGE_SIZE: "20Gi"
+PROMETHEUS_MEMORY_REQUEST: "1Gi"
+
+STORAGE_CLASS: "5Gi"
+ALERTMANAGER_STORAGE_SIZE: "2Gi"

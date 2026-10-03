@@ -1,2 +1,6 @@
 ---
 # vars file for minio
+
+MINIO_CHART_VERSION: "5.4.0"
+MINIO_STORAGE_SIZE: "20Gi"
+MINIO_MEMORY_REQUEST: "512Mi"

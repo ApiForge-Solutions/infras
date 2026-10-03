@@ -1,5 +1,14 @@
 ---
 # vars file for velero
----
+
 VELERO_NAMESPACE: "velero"
 BUCKET_NAME: "velero-backup"
+VELERO_CHART_VERSION: "8.1.0"
+
+
+VELERO_PLUGIN_AWS_IMAGE: "velero/velero-plugin-for-aws:v1.11.0"
+
+VELERO_SCHEDULE_CRON: "0 2 * * *"
+VELERO_SCHEDULE_TTL: "168h"
+VELERO_BACKUP_NAMESPACES:
+  - fastapi-prod

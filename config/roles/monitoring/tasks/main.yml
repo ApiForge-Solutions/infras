@@ -1,34 +1,94 @@
 ---
 # tasks file for monitoring
----
+
 - name: Créer le namespace monitoring
   kubernetes.core.k8s:
-    name: "{{ monitoring_namespace }}"
+    name: "{{ MONITORING_NAMESPACE }}"
     api_version: v1
     kind: Namespace
     state: present
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+  run_once: true
 
 - name: Ajouter le dépôt Helm Prometheus Community
   kubernetes.core.helm_repository:
     name: prometheus-community
     repo_url: https://prometheus-community.github.io/helm-charts
+    force_update: true
+  run_once: true
 
 - name: Déployer kube-prometheus-stack
   kubernetes.core.helm:
     name: monitoring
     chart_ref: prometheus-community/kube-prometheus-stack
-    release_namespace: "{{ monitoring_namespace }}"
+    chart_version: "{{ MONITORING_CHART_VERSION }}"
+    release_namespace: "{{ MONITORING_NAMESPACE }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    state: present
+    wait: true
+    wait_timeout: 15m
     values:
+      prometheus:
+        prometheusSpec:
+          retention: "{{ PROMETHEUS_RETENTION }}"
+          resources:
+            requests:
+              memory: "{{ PROMETHEUS_MEMORY_REQUEST }}"
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: "{{ STORAGE_CLASS }}"
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: "{{ PROMETHEUS_STORAGE_SIZE }}"
+          serviceMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelectorNilUsesHelmValues: false
+      
+      alertmanager:
+        alertmanagerSpec:
+          storage:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: "{{ STORAGE_CLASS }}"
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: "{{ ALERTMANAGER_STORAGE_SIZE }}"
+
       grafana:
-        adminPassword: "{{ grafana_admin_password }}"
+        adminPassword: "{{ GRAFANA_ADMIN_PASSWORD }}"
+        persistence:
+          enabled: true
+          storageClassName: "{{ STORAGE_CLASS }}"
+          size: "{{ GRAFANA_STORAGE_SIZE }}"
         ingress:
           enabled: true
           ingressClassName: traefik
           annotations:
-            cert-manager.io/cluster-issuer: "letsencrypt-prod" # Dépend de la config de ton collègue
+            cert-manager.io/cluster-issuer: "{{ CERT_MANAGER_CLUSTER_ISSUER }}"
           hosts:
-            - "{{ grafana_domain_name }}"
+            - "{{ GRAFANA_DOMAIN_NAME }}"
           tls:
             - secretName: grafana-tls
               hosts:
-                - "{{ grafana_domain_name }}"
+                - "{{ GRAFANA_DOMAIN_NAME }}"
+
+- name: Vérifier que les volumes de monitoring sont liés
+  kubernetes.core.k8s_info:
+    kind: PersistentVolumeClaim
+    namespace: "{{ MONITORING_NAMESPACE }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+  register: mon_pvc
+  failed_when: >-
+    mon_pvc.resources | rejectattr('status.phase', 'equalto', 'Bound')
+    | list | length > 0
+  run_once: true
+
+- name: Afficher l'état de la supervision
+  ansible.builtin.debug:
+    msg:
+      - "Prometheus déployé, rétention {{ PROMETHEUS_RETENTION }}"
+      - "{{ mon_pvc.resources | length }} volumes liés"
+      - "Grafana : https://{{ grafana_domain_name }}"
+  run_once: true

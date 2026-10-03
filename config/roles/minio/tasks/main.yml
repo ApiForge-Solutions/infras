@@ -1,25 +1,69 @@
 ---
 # tasks file for minio
----
+
 - name: Créer le namespace pour MinIO et Velero
   kubernetes.core.k8s:
     name: "{{ MINIO_NAMESPACE }}"
     api_version: v1
     kind: Namespace
     state: present
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+  run_once: true
 
-- name: Ajouter le dépôt Helm Bitnami
+- name: Ajouter le dépôt Helm MinIO officiel
   kubernetes.core.helm_repository:
-    name: bitnami
-    repo_url: https://charts.bitnami.com/bitnami
+    name: minio
+    repo_url: https://charts.min.io/
+    force_update: true
+  run_once: true
 
 - name: Déployer MinIO via Helm
   kubernetes.core.helm:
     name: minio
-    chart_ref: bitnami/minio
+    chart_ref: minio/minio
+    chart_version: "{{ MINIO_CHART_VERSION }}"
     release_namespace: "{{ MINIO_NAMESPACE }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    state: present
+    wait: true
+    wait_timeout: 10m
     values:
-      auth:
-        rootUser: "{{ MINIO_ROOT_USER }}"
-        rootPassword: "{{ MINIO_ROOT_PASSWORD }}"
-      defaultBuckets: "velero-backup"
+      rootUser: "{{ MINIO_ROOT_USER }}"
+      rootPassword: "{{ MINIO_ROOT_PASSWORD }}"
+      mode: standalone
+      replicas: 1
+      persistence:
+        enabled: true
+        storageClass: "{{ STORAGE_CLASS }}"
+        size: "{{ MINIO_STORAGE_SIZE }}"
+      buckets:
+        - name: "{{ BUCKET_NAME }}"
+          policy: none
+          purge: false
+      resources:
+        requests:
+          memory: "{{ MINIO_MEMORY_REQUEST }}"
+  run_once: true
+
+- name: Vérifier que le bucket de sauvegarde existe
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: "{{ MINIO_NAMESPACE }}"
+    label_selectors:
+      - app=minio
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    wait: true
+    wait_condition:
+      type: Ready
+      status: "True"
+    wait_timeout: 300
+  register: minio_pods
+  run_once: true
+
+- name: Afficher l'état de MinIO
+  ansible.builtin.debug:
+    msg:
+      - "MinIO déployé dans le namespace {{ MINIO_NAMESPACE }}"
+      - "Bucket : {{ BUCKET_NAME }}"
+      - "Endpoint interne : http://minio.{{ MINIO_NAMESPACE }}.svc.cluster.local:9000"
+  run_once: true

@@ -1,9 +1,18 @@
 ---
 # tasks file for velero
----
+- name: Créer le namespace Velero
+  kubernetes.core.k8s:
+    name: "{{ VELERO_NAMESPACE }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+  run_once: true
+
 - name: Créer le secret Kubernetes pour les identifiants Velero
   kubernetes.core.k8s:
     state: present
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
     definition:
       apiVersion: v1
       kind: Secret
@@ -14,34 +23,79 @@
       stringData:
         cloud: |
           [default]
-          aws_access_key_id="{{ MINIO_ROOT_USER }}"
-          aws_secret_access_key="{{ MINIO_ROOT_PASSWORD }}"
+          aws_access_key_id={{ MINIO_ROOT_USER }}
+          aws_secret_access_key={{ MINIO_ROOT_PASSWORD }}
+  no_log: true
+  run_once: true
 
 - name: Ajouter le dépôt Helm Velero
   kubernetes.core.helm_repository:
     name: vmware-tanzu
     repo_url: https://vmware-tanzu.github.io/helm-charts
+    force_update: true
+  run_once: true
 
 - name: Déployer Velero via Helm
   kubernetes.core.helm:
     name: velero
     chart_ref: vmware-tanzu/velero
+    chart_version: "{{ VELERO_CHART_VERSION }}"
     release_namespace: "{{ VELERO_NAMESPACE }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    state: present
+    wait: true
+    wait_timeout: 10m
     values:
       credentials:
         existingSecret: minio-credentials
+
       configuration:
         backupStorageLocation:
           name: default
           provider: aws
           bucket: "{{ BUCKET_NAME }}"
+          default: true
           config:
             region: minio
             s3ForcePathStyle: true
-            s3Url: http://minio."{{ VELERO_NAMESPACE }}".svc.cluster.local:9000
+            s3Url: http://minio.{{ VELERO_NAMESPACE }}.svc.cluster.local:9000
+
+      deployNodeAgent: true
+
       initContainers:
         - name: velero-plugin-for-aws
-          image: velero/velero-plugin-for-aws:v1.8.0
+          image: "{{ VELERO_PLUGIN_AWS_IMAGE }}"
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - mountPath: /target
               name: plugins
+      
+      schedules:
+        daily:
+          schedule: "{{ VELERO_SCHEDULE_CRON }}"
+          template:
+            ttl: "{{ VELERO_SCHEDULE_TTL }}"
+            includedNamespaces: "{{ VELERO_BACKUP_NAMESPACES }}"
+            defaultVolumesToFsBackup: true
+  run_once: true
+
+- name: Vérifier que le stockage de sauvegarde est accessible
+  kubernetes.core.k8s_info:
+    api_version: velero.io/v1
+    kind: BackupStorageLocation
+    name: default
+    namespace: "{{ VELERO_NAMESPACE }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+  register: velero_bsl
+  until: velero_bsl.resources[0].status.phase | default('') == 'Available'
+  retries: 12
+  delay: 10
+  run_once: true
+
+- name: Afficher l'état de Velero
+  ansible.builtin.debug:
+    msg:
+      - "Velero déployé dans le namespace {{ VELERO_NAMESPACE }}"
+      - "Stockage : {{ velero_bsl.resources[0].status.phase }} sur {{ BUCKET_NAME }}"
+      - "Sauvegarde quotidienne : {{ VELERO_SCHEDULE_CRON }}, rétention {{ VELERO_SCHEDULE_TTL }}"
+  run_once: true
