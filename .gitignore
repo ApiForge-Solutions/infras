@@ -1,6 +1,9 @@
 # Local .terraform directories
 .terraform/
 
+# Ignore vault data
+.vault_pass
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
