@@ -23,12 +23,12 @@ K8S_API_ENDPOINT: k8s-api.internal
 K8S_API_VIP: 10.10.10.99                                      # kube-vip vars
 KUBE_VIP_VERSION: v1.2.4                                      # kube-vip vars
 KUBE_VIP_INIT_KUBECONFIG: /etc/kubernetes/super-admin.conf    # kube-vip vars
-#conditioned version caused a mistmatch: "{{ '/etc/kubernetes/super-admin.conf' if (KUBERNETES_VERSION | replace('v', '') is version('1.29', '>=')) else '/etc/kubernetes/admin.conf' }}"
 
 METALLB_IP_RANGE: "10.10.10.200-10.10.10.210"    # metallb IPs pool
 TRAEFIK_LB_IP: 10.10.10.200                      # traefik IP
 
-TERRAFORM_APP_DOMAIN: temporary-example.com  #TO BE DEFINED
+TERRAFORM_APP_DOMAIN: temporary-example.com  # Get it from terraform
+
 
 # CERT-MANAGER VARS
 CERT_MANAGER_ACME_EMAIL: chouicha.sensui@hotmail.com    #TO BE CORRECTED
