@@ -110,11 +110,35 @@
     state: directory
     mode: '0755'
 
-- name: Add Kubernetes apt signing key
+#################################
+
+#- name: Add Kubernetes apt signing key
+#  ansible.builtin.get_url:
+#    url: "{{ KUBERNETES_SIGNING_KEY }}"
+#    dest: "{{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}"
+#    mode: '0644'
+
+- name: Download Kubernetes apt signing key
   ansible.builtin.get_url:
     url: "{{ KUBERNETES_SIGNING_KEY }}"
-    dest: "{{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    dest: "/tmp/kubernetes-release-{{ KUBERNETES_VERSION }}.key"
     mode: '0644'
+
+- name: Install dearmored Kubernetes keyring
+  ansible.builtin.command: >
+    gpg --dearmor --yes
+    -o "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    /tmp/kubernetes-release-"{{ KUBERNETES_VERSION }}".key
+  args:
+    creates: "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+
+- name: Make the keyring readable by apt
+  ansible.builtin.file:
+    path: "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    mode: '0644'
+
+
+################################
 
 - name: Add Kubernetes apt repository
   ansible.builtin.copy:
