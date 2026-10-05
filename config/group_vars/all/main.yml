@@ -20,7 +20,7 @@ K8S_REPO_URL: "https://pkgs.k8s.io/core:/stable:/{{ KUBERNETES_VERSION }}/deb/"
 # NETWORK VARS
 K8S_API_ENDPOINT: k8s-api.internal
 
-K8S_API_VIP: 10.10.10.100                                    # kube-vip vars
+K8S_API_VIP: 10.10.10.99                                    # kube-vip vars
 KUBE_VIP_VERSION: v1.2.4                                     # kube-vip vars
 KUBE_VIP_INIT_KUBECONFIG: /etc/kubernetes/super-admin.conf   # kube-vip vars
 
