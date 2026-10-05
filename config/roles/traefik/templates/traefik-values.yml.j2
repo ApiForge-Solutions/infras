@@ -8,7 +8,7 @@ image:
   tag: "{{ TRAEFIK_VERSION }}"
 
 deployment:
-  replicas: "{{ TRAEFIK_REPLICAS | default(2) }}"
+  replicas: {{ TRAEFIK_REPLICAS }}
 
 # Enable all three routing providers: IngressRoute (our own routes),
 # Ingress (for upstream charts like ArgoCD that only support plain Ingress),
