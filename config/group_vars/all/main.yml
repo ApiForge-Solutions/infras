@@ -10,7 +10,7 @@ DOCKER_REPO_URL: "https://download.docker.com/linux/ubuntu"
 KUBERNETES_VERSION: "v1.29"
 KUBERNETES_SIGNING_KEY: "https://pkgs.k8s.io/core:/stable:/{{ KUBERNETES_VERSION }}/deb/Release.key"
 KUBERNETES_KEYRING_PATH: /etc/apt/keyrings/
-KUBERNETES_KEYRING_FILENAME: kubernetes-apt-keyring-{{ KUBERNETES_VERSION }}.asc
+KUBERNETES_KEYRING_FILENAME: kubernetes-apt-keyring-"{{ KUBERNETES_VERSION }}".asc
 KUBECONFIG_PATH: /etc/kubernetes/admin.conf
 
 CALICO_REPO: "https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml"
