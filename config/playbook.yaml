@@ -7,6 +7,7 @@
 - name: Kubernetes masters config
   hosts: k8s_masters
   become: true
+  any_errors_fatal: true
   roles:
     - k8s-master
     - helm
@@ -14,6 +15,7 @@
 - name: Kubernetes workers config
   hosts: k8s_workers
   become: true
+  any_errors_fatal: true
   roles:
     - k8s-worker
 
