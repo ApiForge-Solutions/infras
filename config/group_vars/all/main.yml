@@ -27,10 +27,10 @@ KUBE_VIP_INIT_KUBECONFIG: /etc/kubernetes/super-admin.conf   # kube-vip vars
 METALLB_IP_RANGE: "10.10.10.200-10.10.10.210"    # metallb IPs pool
 TRAEFIK_LB_IP: 10.10.10.200                      # traefik IP
 
-TERRAFORM_APP_DOMAIN: temporary_example.com  #TO BE DEFINED
+TERRAFORM_APP_DOMAIN: temporary-example.com  #TO BE DEFINED
 
 # CERT-MANAGER VARS
-CERT_MANAGER_ACME_EMAIL: liora@example.com    #TO BE DEFINED
+CERT_MANAGER_ACME_EMAIL: chouicha.sensui@hotmail.com    #TO BE CORRECTED
 # STORAGE VARS
 MINIO_NAMESPACE: "velero"
 # MONITORING VARS
