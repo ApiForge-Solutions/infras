@@ -4,7 +4,7 @@
     --apiserver-advertise-address={{ ansible_facts['default_ipv4']['address'] }}
     --node-name={{ ansible_facts['hostname'] }}
   args:
-    creates: /etc/kubernetes/kubelet.conf
+    creates: "{{ KUBECONFIG_PATH }}"
   throttle: 1
 
 - name: Create .kube directory for user
