@@ -1,5 +1,8 @@
 #SPDX-License-Identifier: MIT-0
 ---
+- name: Install Python client for kubernetes.core modules
+  ansible.builtin.import_tasks: python-client.yml
+
 - name: Control-plane init on primary master
   ansible.builtin.import_tasks: init.yml
   when: inventory_hostname == groups['k8s_masters'][0]
