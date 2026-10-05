@@ -12,10 +12,11 @@ KUBERNETES_SIGNING_KEY: "https://pkgs.k8s.io/core:/stable:/{{ KUBERNETES_VERSION
 KUBERNETES_KEYRING_PATH: /etc/apt/keyrings/
 KUBERNETES_KEYRING_FILENAME: "kubernetes-apt-keyring-{{ KUBERNETES_VERSION }}.gpg"
 KUBECONFIG_PATH: /etc/kubernetes/admin.conf
-
-CALICO_REPO: "https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml"
+KUBERNETES_PY_SPEC: "kubernetes<32"
 
 K8S_REPO_URL: "https://pkgs.k8s.io/core:/stable:/{{ KUBERNETES_VERSION }}/deb/"
+
+CALICO_REPO: "https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml"
 
 # NETWORK VARS
 K8S_API_ENDPOINT: k8s-api.internal

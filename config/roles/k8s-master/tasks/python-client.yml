@@ -8,5 +8,5 @@
 
 - name: Install the kubernetes Python client
   ansible.builtin.pip:
-    name: kubernetes
+    name: "{{ KUBERNETES_PY_SPEC }}"
     extra_args: --break-system-packages
