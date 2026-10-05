@@ -67,7 +67,7 @@
     dest: /etc/kubernetes/manifests/kube-vip.yaml
     mode: '0600'
   vars:
-    kube_vip_kubeconfig:  "{{ KUBECONFIG_PATH }}"
+    kube_vip_kubeconfig: "{{ KUBECONFIG_PATH }}"
 
 - name: Wait for the API through the VIP
   ansible.builtin.wait_for:
