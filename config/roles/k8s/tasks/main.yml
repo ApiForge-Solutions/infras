@@ -87,7 +87,7 @@
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '\s{{ K8S_API_ENDPOINT | regex_escape }}$'
-    line: "{{ K8S_API_STOPGAP_IP }} {{ K8S_API_ENDPOINT }}"
+    line: "{{ K8S_API_VIP }} {{ K8S_API_ENDPOINT }}"
     state: present
 
 - name: Wait for containerd socket

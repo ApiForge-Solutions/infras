@@ -1,14 +1,56 @@
+---
+- name: Check if Kubernetes is already initialized                      # NEW
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: k8s_init_check
+
+- name: VIP must not answer on the network yet                          # NEW
+  ansible.builtin.command: ping -c 2 -W 1 {{ K8S_API_VIP }}
+  register: vip_ping
+  failed_when: vip_ping.rc == 0
+  changed_when: false
+  when: not k8s_init_check.stat.exists
+
+- name: Pre-pull the kube-vip image                                     # NEW
+  ansible.builtin.command: crictl pull ghcr.io/kube-vip/kube-vip:{{ KUBE_VIP_VERSION }}
+  changed_when: false
+  when: not k8s_init_check.stat.exists
+
+- name: Place kube-vip manifest (init kubeconfig)                       # NEW
+  ansible.builtin.template:
+    src: kube-vip.yaml.j2
+    dest: /etc/kubernetes/manifests/kube-vip.yaml
+    mode: '0600'
+  vars:
+    kube_vip_kubeconfig: "{{ KUBE_VIP_INIT_KUBECONFIG }}"
+  when: not k8s_init_check.stat.exists
+
 - name: kubeadm init
   ansible.builtin.command: >
     kubeadm init
     --control-plane-endpoint={{ K8S_API_ENDPOINT }}:6443
     --upload-certs
     --apiserver-advertise-address={{ ansible_facts['default_ipv4']['address'] }}
-    --apiserver-cert-extra-sans={{ ansible_facts['default_ipv4']['address'] }}
+    --apiserver-cert-extra-sans={{ K8S_API_VIP }},{{ ansible_facts['default_ipv4']['address'] }}
     --node-name={{ ansible_facts['hostname'] }}
     --pod-network-cidr=192.168.0.0/16
+    --ignore-preflight-errors=DirAvailable--etc-kubernetes-manifests
   args:
     creates: /etc/kubernetes/admin.conf
+
+- name: Switch kube-vip to admin.conf                                   # NEW
+  ansible.builtin.template:
+    src: kube-vip.yaml.j2
+    dest: /etc/kubernetes/manifests/kube-vip.yaml
+    mode: '0600'
+  vars:
+    kube_vip_kubeconfig:  "{{ KUBECONFIG_PATH }}"
+
+- name: Wait for the API through the VIP                                # NEW
+  ansible.builtin.wait_for:
+    host: "{{ K8S_API_VIP }}"
+    port: 6443
+    timeout: 120
 
 - name: Create .kube directory for user
   ansible.builtin.file:
@@ -20,7 +62,7 @@
 
 - name: Copy admin.conf to user's kubeconfig
   ansible.builtin.copy:
-    src: /etc/kubernetes/admin.conf
+    src:  "{{ KUBECONFIG_PATH }}"
     dest: "/home/{{ ansible_user }}/.kube/config"
     remote_src: true
     owner: "{{ ansible_user }}"
@@ -30,7 +72,7 @@
 - name: Install Calico pod network
   ansible.builtin.command: kubectl apply -f {{ CALICO_REPO }}
   environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
+    KUBECONFIG: "{{ KUBECONFIG_PATH }}"
   changed_when: false
 
 - name: Create join token
