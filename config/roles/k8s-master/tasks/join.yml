@@ -1,6 +1,6 @@
 - name: Join as control-plane node
   ansible.builtin.command: >
-    {{ hostvars[groups['k8s-masters'][0]].control_plane_join }}
+    {{ hostvars[groups['k8s_masters'][0]].control_plane_join }}
     --apiserver-advertise-address={{ ansible_facts['default_ipv4']['address'] }}
     --node-name={{ ansible_facts['hostname'] }}
   args:
