@@ -59,7 +59,7 @@
 
     - name: Stop the play
       ansible.builtin.fail:
-        msg: "kubeadm init failed on {{ inventory_hostname }}, see diagnostics above
+        msg: "kubeadm init failed on {{ inventory_hostname }}, see diagnostics above"
 
 - name: Switch kube-vip to admin.conf
   ansible.builtin.template:
