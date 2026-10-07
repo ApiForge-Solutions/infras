@@ -29,6 +29,6 @@ CERT_MANAGER_ACME_EMAIL: liora@example.com    #TO BE DEFINED
 # STORAGE VARS
 MINIO_NAMESPACE: "velero"
 # MONITORING VARS
-monitoring_namespace: "monitoring"
+MONITORING_NAMESPACE: "monitoring"
 # CD VARS
-argocd_namespace: "argocd"
+ARGOCD_NAMESPACE: "argocd"
