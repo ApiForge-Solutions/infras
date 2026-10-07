@@ -3,7 +3,5 @@
 ---
 # vars file for traefik
 
-KUBECONFIG_PATH: /etc/kubernetes/admin.conf
-
 TRAEFIK_LOG_LEVEL: INFO
 TRAEFIK_NAMESPACE: traefik

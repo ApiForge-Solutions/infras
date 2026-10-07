@@ -87,7 +87,7 @@
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '\s{{ K8S_API_ENDPOINT | regex_escape }}$'
-    line: "{{ K8S_API_STOPGAP_IP }} {{ K8S_API_ENDPOINT }}"
+    line: "{{ K8S_API_VIP }} {{ K8S_API_ENDPOINT }}"
     state: present
 
 - name: Wait for containerd socket
@@ -110,11 +110,35 @@
     state: directory
     mode: '0755'
 
-- name: Add Kubernetes apt signing key
+#################################
+
+#- name: Add Kubernetes apt signing key
+#  ansible.builtin.get_url:
+#    url: "{{ KUBERNETES_SIGNING_KEY }}"
+#    dest: "{{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}"
+#    mode: '0644'
+
+- name: Download Kubernetes apt signing key
   ansible.builtin.get_url:
     url: "{{ KUBERNETES_SIGNING_KEY }}"
-    dest: "{{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    dest: "/tmp/kubernetes-release-{{ KUBERNETES_VERSION }}.key"
     mode: '0644'
+
+- name: Install dearmored Kubernetes keyring
+  ansible.builtin.command: >
+    gpg --dearmor --yes
+    -o "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    /tmp/kubernetes-release-"{{ KUBERNETES_VERSION }}".key
+  args:
+    creates: "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+
+- name: Make the keyring readable by apt
+  ansible.builtin.file:
+    path: "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    mode: '0644'
+
+
+################################
 
 - name: Add Kubernetes apt repository
   ansible.builtin.copy:
@@ -136,6 +160,14 @@
       - kubelet
       - kubeadm
       - kubectl
+
+- name: Configure crictl endpoint
+  ansible.builtin.copy:
+    dest: /etc/crictl.yaml
+    content: |
+      runtime-endpoint: unix:///run/containerd/containerd.sock
+      image-endpoint: unix:///run/containerd/containerd.sock
+    mode: '0644'
 
 - name: Set node IP fact
   ansible.builtin.set_fact:
