@@ -1,26 +1,74 @@
 ---
 # tasks file for argocd
----
+
 - name: Créer le namespace argocd
   kubernetes.core.k8s:
-    name: argocd
+    name: "{{ ARGOCD_NAMESPACE }}"
     api_version: v1
     kind: Namespace
     state: present
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+  run_once: true
 
 - name: Ajouter le dépôt Helm Argo
   kubernetes.core.helm_repository:
     name: argo
     repo_url: https://argoproj.github.io/argo-helm
+    force_update: true
+  run_once: true
 
 - name: Déployer ArgoCD via Helm
   kubernetes.core.helm:
     name: argocd
     chart_ref: argo/argo-cd
-    release_namespace: argocd
+    chart_version: "{{ ARGOCD_CHART_VERSION }}"
+    release_namespace: "{{ ARGOCD_NAMESPACE }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    state: present
+    wait: true
+    wait_timeout: 10m
+    values:
+      configs:
+        params:
+          server.insecure: true
+      server:
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          hostname: "{{ ARGOCD_DOMAIN_NAME }}"
+          annotations:
+            cert-manager.io/cluster-issuer: "{{ CERT_MANAGER_ISSUERS }}"
+          tls: true
+      redis-ha:
+        enabled: false
+  run_once: true
 
-- name: Appliquer la ressource GitOps (FastAPI)
+- name: Déclarer les Applications ArgoCD (un environnement par branche)
   kubernetes.core.k8s:
     state: present
-    src: application.yaml
-    namespace: argocd
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    definition: "{{ lookup('template', 'application.yaml.j2') | from_yaml }}"
+  loop: "{{ ARGOCD_ENVIRONMENTS }}"
+  loop_control:
+    loop_var: env
+    label: "{{ env.name }} -> {{ env.namespace }}"
+  run_once: true
+
+- name: Vérifier que les quatre Applications sont enregistrées
+  kubernetes.core.k8s_info:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    namespace: "{{ ARGOCD_NAMESPACE }}"
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+  register: argocd_apps
+  failed_when: argocd_apps.resources | length < argocd_environments | length
+  run_once: true
+
+- name: Afficher l'état d'ArgoCD
+  ansible.builtin.debug:
+    msg:
+      - "ArgoCD : https://{{ ARGOCD_DOMAIN_NAME }}"
+      - "Identifiant : admin"
+      - "Applications : {{ argocd_apps.resources | map(attribute='metadata.name') | join(', ') }}"
+      - "Synchronisation manuelle : {{ argocd_environments | rejectattr('auto_sync') | map(attribute='name') | join(', ') }}"
+  run_once: true

@@ -1,2 +1,29 @@
 ---
 # vars file for argocd
+ARGOCD_CHART_VERSION: "7.7.11"
+ARGOCD_DOMAIN_NAME: "argocd.{{ TERRAFORM_APP_DOMAIN }}"
+
+ARGOCD_REPO_URL: "https://github.com/ApiForge-Solutions/manifests.git"
+ARGOCD_REPO_REVISION: "main"
+ARGOCD_CHART_PATH: "chart"
+
+ARGOCD_ENVIRONMENTS:
+  - name: fastapi-dev
+    namespace: fastapi-dev
+    values_file: values-dev.yaml
+    auto_sync: true
+
+  - name: fastapi-qa
+    namespace: fastapi-qa
+    values_file: values-qa.yaml
+    auto_sync: true
+
+  - name: fastapi-staging
+    namespace: fastapi-staging
+    values_file: values-staging.yaml
+    auto_sync: true
+
+  - name: fastapi-prod
+    namespace: fastapi-prod
+    values_file: values-prod.yaml
+    auto_sync: false   
