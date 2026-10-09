@@ -28,10 +28,6 @@ pipeline {
                             credentialsId: 'ssh-public-key',
                             variable: 'TF_VAR_ssh_public_key'
                         ),
-                        string(
-                            credentialsId: 'terraform-password',
-                            variable: 'TF_VAR_password'
-                        )
                     ]) {
                         sh 'terraform init'
                         sh 'terraform validate'
