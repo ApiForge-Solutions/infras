@@ -1,7 +1,7 @@
-- name: Public entry point config on the Proxmox host
-  hosts: proxmox
-  roles:
-    - proxmox-traffic
+#- name: Public entry point config on the Proxmox host
+ # hosts: proxmox
+ # roles:
+  #  - proxmox-traffic
 
 - name: Kubernetes global config
   hosts: k8s_global
