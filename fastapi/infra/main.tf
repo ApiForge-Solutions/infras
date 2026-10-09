@@ -8,8 +8,7 @@ terraform {
 }
 
 provider "proxmox" {
-  endpoint  = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-  api_token = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  
   insecure  = true
 
   #  backend "http" {}
