@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -20,20 +21,18 @@ pipeline {
                             credentialsId: 'proxmox-token',
                             variable: 'PROXMOX_VE_API_TOKEN'
                         ),
-                        sshUserPrivateKey(
+                        string(
                             credentialsId: 'ssh-public-key',
-                            keyFileVariable: 'SSH_KEY'
+                            variable: 'SSH_PUBLIC_KEY'
                         )
                     ]) {
                         sh '''
                             set +x
-
-                            export TF_VAR_ssh_public_key="$(cat "$SSH_KEY.pub" 2>/dev/null || true)"
+                            export TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY"
 
                             terraform init
                             terraform validate
                             terraform apply -auto-approve -var-file="terraform.tfvars"
-
                             terraform output -json ansible_inventory > ../config/ansible_inventory.json
                         '''
                     }
@@ -52,13 +51,11 @@ pipeline {
                     ]) {
                         sh '''
                             set +x
-
                             VAULT_FILE=$(mktemp)
                             trap 'rm -f "$VAULT_FILE"' EXIT
 
                             printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
                             chmod 600 "$VAULT_FILE"
-
                             export ANSIBLE_VAULT_PASSWORD_FILE="$VAULT_FILE"
 
                             python3 generate_inventory.py
@@ -84,13 +81,11 @@ pipeline {
                     ]) {
                         sh '''
                             set +x
-
                             VAULT_FILE=$(mktemp)
                             trap 'rm -f "$VAULT_FILE"' EXIT
 
                             printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
                             chmod 600 "$VAULT_FILE"
-
                             export ANSIBLE_VAULT_PASSWORD_FILE="$VAULT_FILE"
                             export ANSIBLE_PRIVATE_KEY_FILE="$SSH_KEY"
 
