@@ -31,6 +31,12 @@ all:
         k8s_masters:
         k8s_workers:
 
+    proxmox:
+      hosts:
+        proxmox_host:
+          ansible_host: 10.10.10.1
+          ansible_user: root
+
     minio:
       hosts:
         minio_server:
