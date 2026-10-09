@@ -80,7 +80,7 @@ stages {
                         printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
                         export ANSIBLE_VAULT_PASSWORD_FILE="$VAULT_FILE"
 
-                        ansible-playbook -i inventory.generated.yml playbook.yml
+                        ansible-playbook -i inventory.generated.yml playbook.yaml
                     '''
                 }
             }
