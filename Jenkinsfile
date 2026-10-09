@@ -78,7 +78,7 @@ pipeline {
                             variable: 'VAULT_PASSWORD'
                         ),
                         sshUserPrivateKey(
-                            credentialsId: 'ssh-public-key',
+                            credentialsId: 'ssh-private-key',
                             keyFileVariable: 'SSH_KEY'
                         )
                     ]) {
