@@ -5,8 +5,8 @@
 .vault_pass
 
 # .tfstate files
-*.tfstate
-*.tfstate.*
+#*.tfstate
+#*.tfstate.*
 
 # Crash log files
 crash.log
