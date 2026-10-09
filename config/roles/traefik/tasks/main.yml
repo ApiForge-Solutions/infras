@@ -34,6 +34,50 @@
         dashboard_password: "{{ VAULT_DASHBOARD_PASSWORD }}"
         app_domain: "{{ TERRAFORM_APP_DOMAIN }}"
 
+################# Start CoreDNS steps
+
+    - name: Read the CoreDNS ConfigMap
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        kind: ConfigMap
+        name: coredns
+        namespace: kube-system
+      register: coredns_cm
+
+    - name: Check the Corefile has the expected layout
+      ansible.builtin.assert:
+        that: "'    forward .' in coredns_cm.resources[0].data.Corefile"
+        fail_msg: "Unexpected Corefile layout, edit the ConfigMap by hand"
+        quiet: true
+
+    - name: Add the app hostnames to CoreDNS
+      kubernetes.core.k8s:
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: coredns
+            namespace: kube-system
+          data:
+            Corefile: "{{ coredns_cm.resources[0].data.Corefile.replace('    forward .', hosts_block ~ '    forward .', 1) }}"
+      vars:
+        hosts_block: |2
+              hosts {
+                 {{ TRAEFIK_LB_IP }} traefik.{{ TERRAFORM_APP_DOMAIN }}                                                                        # ADD URL HERE
+                 {{ TRAEFIK_LB_IP }} test.{{ TERRAFORM_APP_DOMAIN }}
+                 fallthrough
+              }
+      register: coredns_patch
+      when: ("traefik." ~ TERRAFORM_APP_DOMAIN) not in coredns_cm.resources[0].data.Corefile
+
+    - name: Restart CoreDNS to apply it now
+      ansible.builtin.command: kubectl -n kube-system rollout restart deploy/coredns
+      when: coredns_patch is changed
+
+################## end CoreDNS steps
+
     - name: Request TLS certificate for the Traefik dashboard
       kubernetes.core.k8s:
         state: present
@@ -49,7 +93,7 @@
             dnsNames:
               - "traefik.{{ TERRAFORM_APP_DOMAIN }}"
             issuerRef:
-              name: "{{ letsencrypt_issuer | default('letsencrypt-staging') }}"
+              name: "{{ LETSENCRYPT_ISSUER }}"
               kind: ClusterIssuer
 
     - name: Deploy Traefik via Helm
