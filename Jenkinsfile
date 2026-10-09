@@ -96,7 +96,7 @@ pipeline {
 
                             ansible-playbook \
                                 -i inventory.generated.yaml \
-                                playbook.yml
+                                playbook.yaml
                         '''
                     }
                 }
