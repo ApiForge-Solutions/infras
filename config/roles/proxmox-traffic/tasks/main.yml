@@ -1,0 +1,15 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for proxmox-traffic
+---
+- name: Forward 80/443 from the public IP to Traefik
+  ansible.builtin.iptables:
+    table: nat
+    chain: PREROUTING
+    in_interface: "{{ PROXMOX_PUBLIC_IFACE }}"
+    destination: "{{ PROXMOX_PUBLIC_IP }}"
+    protocol: tcp                                # For web traffic
+    destination_ports: ["80", "443"]             # For web traffic
+    jump: DNAT                                   # Rewrite DNAT
+    to_destination: "{{ TRAEFIK_LB_IP }}"        # Point to traefik so it does it job
+    comment: k8s-traefik
