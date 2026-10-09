@@ -1,6 +1,7 @@
 pipeline {
 agent any
 
+
 environment {
     TF_IN_AUTOMATION = 'true'
 }
@@ -32,8 +33,10 @@ stages {
     stage('Generate Ansible Inventory') {
         steps {
             dir('fastapi/config') {
-                sh 'python3 generate_inventory.py'
-                sh 'ansible-inventory -i inventory.generated.yml --graph'
+                withEnv(['ANSIBLE_VAULT_PASSWORD_FILE=group_vars/all/.vault_pass']) {
+                    sh 'python3 generate_inventory.py'
+                    sh 'ansible-inventory -i inventory.generated.yml --graph'
+                }
             }
         }
     }
@@ -41,7 +44,9 @@ stages {
     stage('Run Ansible') {
         steps {
             dir('fastapi/config') {
-                sh 'ansible-playbook -i inventory.generated.yml playbook.yml'
+                withEnv(['ANSIBLE_VAULT_PASSWORD_FILE=group_vars/all/.vault_pass']) {
+                    sh 'ansible-playbook -i inventory.generated.yml playbook.yml'
+                }
             }
         }
     }
