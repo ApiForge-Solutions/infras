@@ -107,6 +107,7 @@
           - /tmp/traefik-values.yml
         wait: true
         kubeconfig: "{{ KUBECONFIG_PATH }}"
+      no_log: true # for security
 
     - name: Remove rendered values for security
       ansible.builtin.file:
