@@ -1,7 +1,6 @@
 pipeline {
 agent any
 
-
 environment {
     TF_IN_AUTOMATION = 'true'
 }
@@ -17,9 +16,18 @@ stages {
         steps {
             dir('fastapi/infra') {
                 withCredentials([
-                    string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
-                    string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
-                    string(credentialsId: 'ssh-public-key', variable: 'TF_VAR_ssh_public_key')
+                    string(
+                        credentialsId: 'proxmox-endpoint',
+                        variable: 'PROXMOX_VE_ENDPOINT'
+                    ),
+                    string(
+                        credentialsId: 'proxmox-token',
+                        variable: 'PROXMOX_VE_API_TOKEN'
+                    ),
+                    string(
+                        credentialsId: 'ssh-public-key',
+                        variable: 'TF_VAR_ssh_public_key'
+                    )
                 ]) {
                     sh 'terraform init'
                     sh 'terraform validate'
@@ -33,9 +41,23 @@ stages {
     stage('Generate Ansible Inventory') {
         steps {
             dir('fastapi/config') {
-                withEnv(['ANSIBLE_VAULT_PASSWORD_FILE=group_vars/all/.vault_pass']) {
-                    sh 'python3 generate_inventory.py'
-                    sh 'ansible-inventory -i inventory.generated.yml --graph'
+                withCredentials([
+                    string(
+                        credentialsId: 'ansible-vault-password',
+                        variable: 'VAULT_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        VAULT_FILE=$(mktemp)
+                        trap 'rm -f "$VAULT_FILE"' EXIT
+
+                        printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
+                        export ANSIBLE_VAULT_PASSWORD_FILE="$VAULT_FILE"
+
+                        python3 generate_inventory.py
+                        ansible-inventory -i inventory.generated.yml --graph
+                    '''
                 }
             }
         }
@@ -44,8 +66,22 @@ stages {
     stage('Run Ansible') {
         steps {
             dir('fastapi/config') {
-                withEnv(['ANSIBLE_VAULT_PASSWORD_FILE=group_vars/all/.vault_pass']) {
-                    sh 'ansible-playbook -i inventory.generated.yml playbook.yml'
+                withCredentials([
+                    string(
+                        credentialsId: 'ansible-vault-password',
+                        variable: 'VAULT_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        VAULT_FILE=$(mktemp)
+                        trap 'rm -f "$VAULT_FILE"' EXIT
+
+                        printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
+                        export ANSIBLE_VAULT_PASSWORD_FILE="$VAULT_FILE"
+
+                        ansible-playbook -i inventory.generated.yml playbook.yml
+                    '''
                 }
             }
         }
