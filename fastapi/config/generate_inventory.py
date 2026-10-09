@@ -29,5 +29,5 @@ for group, target in [
                 
             children[target]["hosts"][hostname]["ansible_host"] = ip
 
-with open("inventory.generated.yml", "w", encoding="utf-8") as f:
+with open("inventory.generated.yaml", "w", encoding="utf-8") as f:
     yaml.safe_dump(generated, f, sort_keys=False, allow_unicode=True)
