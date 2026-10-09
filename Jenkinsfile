@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -23,11 +24,19 @@ pipeline {
                         string(
                             credentialsId: 'proxmox-token',
                             variable: 'PROXMOX_VE_API_TOKEN'
+                        ),
+                        string(
+                            credentialsId: 'ssh-public-key',
+                            variable: 'TF_VAR_ssh_public_key'
+                        ),
+                        string(
+                            credentialsId: 'terraform-password',
+                            variable: 'TF_VAR_password'
                         )
                     ]) {
                         sh 'terraform init'
                         sh 'terraform validate'
-                        sh 'terraform apply -auto-approve'
+                        sh 'terraform apply -auto-approve -var-file="terraform.tfvars"'
                         sh 'terraform output -json ansible_inventory > ../config/ansible_inventory.json'
                     }
                 }
@@ -52,3 +61,4 @@ pipeline {
         }
     }
 }
+```
