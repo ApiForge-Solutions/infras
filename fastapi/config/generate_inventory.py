@@ -2,7 +2,7 @@ import copy
 import json
 import yaml
 
-with open("inventory.yml", encoding="utf-8") as f:
+with open("inventory.yaml", encoding="utf-8") as f:
     inventory = yaml.safe_load(f)
 
 with open("ansible_inventory.json", encoding="utf-8") as f:
