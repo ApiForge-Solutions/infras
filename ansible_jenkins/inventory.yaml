@@ -1,7 +1,0 @@
-all:
-  hosts:
-    jenkins:
-      ansible_host: 10.10.10.100
-      ansible_user: ubuntu
-      ansible_ssh_private_key_file: /mnt/c/Users/berge/.ssh/id_ed25519
-      ansible_ssh_common_args: '-o ProxyCommand="ssh -i /mnt/c/Users/berge/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p root@151.115.96.129"'
