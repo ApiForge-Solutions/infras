@@ -1,7 +1,6 @@
 pipeline {
 agent any
 
-```
 environment {
     TF_IN_AUTOMATION = 'true'
 }
@@ -56,6 +55,4 @@ stages {
         }
     }
 }
-```
-
 }
