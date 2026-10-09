@@ -27,11 +27,7 @@ variable "zone_name" {
 variable "vnet_name" {
   type = string
 }
-variable "password" {
-  description = "Mot de passe de l'utilisateur Ubuntu"
-  type        = string
-  sensitive   = true
-}
+
 variable "cidr" {
   type    = string
   default = "10.10.10.0/24"

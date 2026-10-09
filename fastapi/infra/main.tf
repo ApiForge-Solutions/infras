@@ -41,7 +41,7 @@ module "vm_master" {
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
   ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id
-  password                      = var.password
+
   
 }
 
@@ -56,7 +56,7 @@ module "vm_worker" {
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
   ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id
-  password                      = var.password
+
 }
 
 
@@ -67,7 +67,6 @@ module "vm_Minio" {
   vm_id                         = 302
   virtual_environment_node_name = var.virtual_environment_node_name
   ssh_public_key                = var.ssh_public_key
-  password                      = var.password 
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
   ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id

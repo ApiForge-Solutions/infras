@@ -45,8 +45,4 @@ variable "disk_datastore_id" {
 variable "ubuntu_image_id" {
   type = string
 }
-variable "password" {
-  description = "Mot de passe de l'utilisateur Ubuntu"
-  type        = string
-  sensitive   = true
-}
+

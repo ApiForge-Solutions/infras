@@ -62,7 +62,6 @@ scsi_hardware = "virtio-scsi-single"
 
     user_account {
       username = var.username
-      password = var.password
       keys     = [var.ssh_public_key]
     }
       vendor_data_file_id = "local:snippets/cloud-init.yaml"
