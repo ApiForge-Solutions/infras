@@ -6,7 +6,7 @@
 TRAEFIK_VERSION: "v3.3.2"
 TRAEFIK_CHART_VERSION: "33.2.1"
 TRAEFIK_REPLICAS: 2
-#LETSENCRYPT_ISSUER: letsencrypt-staging   # switch to letsencrypt-prod once validated
+LETSENCRYPT_ISSUER: letsencrypt-staging   # switch to letsencrypt-prod once validated
 
 TRAEFIK_CPU_REQUEST: "100m"
 TRAEFIK_MEMORY_REQUEST: "128Mi"
