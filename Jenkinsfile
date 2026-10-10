@@ -114,35 +114,4 @@ pipeline {
 
                             test -n "$SECRET_KEY" || {
                                 echo "ERREUR : fastapi-secret-key est vide."
-                                exit 1
-                            }
-
-                            echo "Credentials présents : OK"
-
-                            kubectl create secret generic db-secret \
-                                --from-literal=POSTGRES_USER="$POSTGRES_USER" \
-                                --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-                                --from-literal=POSTGRES_DB=fastapi \
-                                --dry-run=client -o yaml | kubectl apply -f -
-
-                            kubectl create secret generic fastapi-secret \
-                                --from-literal=POSTGRES_USER="$POSTGRES_USER" \
-                                --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-                                --from-literal=FIRST_SUPERUSER_PASSWORD="$FIRST_SUPERUSER_PASSWORD" \
-                                --from-literal=SECRET_KEY="$SECRET_KEY" \
-                                --dry-run=client -o yaml | kubectl apply -f -
-
-                            helm lint .
-                            helm upgrade --install fastapi .
-
-                            kubectl rollout restart statefulset/db
-                            kubectl rollout status statefulset/db --timeout=180s
-
-                            kubectl get pods
-                        '''
-                    }
-                }
-            }
-        }
-    }
-}
+                               
