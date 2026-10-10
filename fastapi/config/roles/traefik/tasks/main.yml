@@ -34,7 +34,7 @@
         dashboard_password: "{{ VAULT_DASHBOARD_PASSWORD }}"
         app_domain: "{{ TERRAFORM_APP_DOMAIN }}"
 
-################# Start CoreDNS steps
+    ################# Start CoreDNS steps
 
     - name: Read the CoreDNS ConfigMap
       kubernetes.core.k8s_info:
@@ -46,11 +46,45 @@
 
     - name: Check the Corefile has the expected layout
       ansible.builtin.assert:
-        that: "'    forward .' in coredns_cm.resources[0].data.Corefile"
-        fail_msg: "Unexpected Corefile layout, edit the ConfigMap by hand"
+        that:
+          - coredns_cm.resources | length == 1
+          - "'    forward .' in coredns_cm.resources[0].data.Corefile"
+        fail_msg: "Unexpected CoreDNS Corefile layout."
         quiet: true
 
-    - name: Add the app hostnames to CoreDNS
+    - name: Build the required CoreDNS hosts block
+      ansible.builtin.set_fact:
+        coredns_hosts_block: |-
+          hosts {
+              {{ TRAEFIK_LB_IP }} traefik.{{ TERRAFORM_APP_DOMAIN }}
+              {{ TRAEFIK_LB_IP }} test.{{ TERRAFORM_APP_DOMAIN }}
+              {{ TRAEFIK_LB_IP }} {{ TERRAFORM_API_SUBDOMAIN }}.{{ TERRAFORM_APP_DOMAIN }}
+              fallthrough
+          }
+
+    - name: Build the updated CoreDNS Corefile
+      ansible.builtin.set_fact:
+        coredns_updated_corefile: >-
+          {{
+            (
+              coredns_cm.resources[0].data.Corefile
+              | regex_replace(
+                  '(?ms)^    hosts \{.*?^    \}',
+                  coredns_hosts_block | indent(4, true)
+                )
+            )
+            if '    hosts {' in coredns_cm.resources[0].data.Corefile
+            else
+            (
+              coredns_cm.resources[0].data.Corefile.replace(
+                '    forward .',
+                (coredns_hosts_block | indent(4, true)) ~ '\n    forward .',
+                1
+              )
+            )
+          }}
+
+    - name: Apply the CoreDNS host records
       kubernetes.core.k8s:
         kubeconfig: "{{ KUBECONFIG_PATH }}"
         state: present
@@ -61,22 +95,20 @@
             name: coredns
             namespace: kube-system
           data:
-            Corefile: "{{ coredns_cm.resources[0].data.Corefile.replace('    forward .', hosts_block ~ '    forward .', 1) }}"
-      vars:
-        hosts_block: |2
-              hosts {
-                 {{ TRAEFIK_LB_IP }} traefik.{{ TERRAFORM_APP_DOMAIN }}                                                                        # ADD URL HERE
-                 {{ TRAEFIK_LB_IP }} test.{{ TERRAFORM_APP_DOMAIN }}
-                 fallthrough
-              }
+            Corefile: "{{ coredns_updated_corefile }}"
       register: coredns_patch
-      when: ("traefik." ~ TERRAFORM_APP_DOMAIN) not in coredns_cm.resources[0].data.Corefile
 
-    - name: Restart CoreDNS to apply it now
-      ansible.builtin.command: kubectl -n kube-system rollout restart deploy/coredns
+    - name: Restart CoreDNS to apply the configuration
+      ansible.builtin.command:
+        cmd: kubectl --kubeconfig={{ KUBECONFIG_PATH }} -n kube-system rollout restart deployment/coredns
       when: coredns_patch is changed
 
-################## end CoreDNS steps
+    - name: Wait for CoreDNS rollout
+      ansible.builtin.command:
+        cmd: kubectl --kubeconfig={{ KUBECONFIG_PATH }} -n kube-system rollout status deployment/coredns --timeout=120s
+      changed_when: false
+
+    ################## End CoreDNS steps
 
     - name: Request TLS certificate for the Traefik dashboard
       kubernetes.core.k8s:
@@ -107,7 +139,7 @@
           - /tmp/traefik-values.yml
         wait: true
         kubeconfig: "{{ KUBECONFIG_PATH }}"
-      no_log: true # for security
+      no_log: true
 
     - name: Remove rendered values for security
       ansible.builtin.file:
