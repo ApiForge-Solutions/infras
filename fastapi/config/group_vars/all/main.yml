@@ -41,3 +41,5 @@ MINIO_NAMESPACE: "velero"
 MONITORING_NAMESPACE: "monitoring"
 # CD VARS
 ARGOCD_NAMESPACE: "argocd"
+
+ansible_python_interpreter: /usr/bin/python3
