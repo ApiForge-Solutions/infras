@@ -25,7 +25,6 @@ pipeline {
                             terraform init
                             terraform validate
                             terraform apply -auto-approve -var-file=terraform.tfvars
-
                             terraform output -json ansible_inventory > ../config/ansible_inventory.json
                         '''
                     }
@@ -48,6 +47,7 @@ pipeline {
 
                             printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
                             chmod 600 "$VAULT_FILE"
+
                             export ANSIBLE_VAULT_PASSWORD_FILE="$VAULT_FILE"
 
                             python3 generate_inventory.py
@@ -74,6 +74,7 @@ pipeline {
 
                             printf '%s' "$VAULT_PASSWORD" > "$VAULT_FILE"
                             chmod 600 "$VAULT_FILE"
+
                             export ANSIBLE_VAULT_PASSWORD_FILE="$VAULT_FILE"
                             export ANSIBLE_PRIVATE_KEY_FILE="$SSH_KEY"
 
@@ -97,6 +98,8 @@ pipeline {
                             set -eu
                             set +x
 
+                            echo "=== 1. Vérification des credentials ==="
+
                             test -n "$POSTGRES_USER" || {
                                 echo "ERREUR : postgres-user est vide."
                                 exit 1
@@ -114,4 +117,102 @@ pipeline {
 
                             test -n "$SECRET_KEY" || {
                                 echo "ERREUR : fastapi-secret-key est vide."
-                               
+                                exit 1
+                            }
+
+                            echo "Credentials présents : OK"
+
+                            echo "=== 2. Désinstallation de l'ancienne release Helm ==="
+
+                            if helm status fastapi -n default >/dev/null 2>&1; then
+                                helm uninstall fastapi -n default --wait
+                            fi
+
+                            echo "=== 3. Suppression des ressources restantes ==="
+
+                            kubectl delete deployment \
+                                backend frontend adminer \
+                                -n default \
+                                --ignore-not-found \
+                                --wait=true
+
+                            kubectl delete statefulset db \
+                                -n default \
+                                --ignore-not-found \
+                                --wait=true
+
+                            kubectl delete service \
+                                backend frontend adminer db \
+                                -n default \
+                                --ignore-not-found \
+                                --wait=true
+
+                            kubectl delete ingress app-ingress \
+                                -n default \
+                                --ignore-not-found \
+                                --wait=true
+
+                            echo "=== 4. Suppression du stockage de la base de données ==="
+
+                            kubectl delete pvc db-pvc \
+                                -n default \
+                                --ignore-not-found \
+                                --wait=true
+
+                            kubectl delete pv db-pv \
+                                --ignore-not-found \
+                                --wait=true
+
+                            echo "=== 5. Suppression des anciens Secrets ==="
+
+                            kubectl delete secret db-secret fastapi-secret \
+                                -n default \
+                                --ignore-not-found \
+                                --wait=true
+
+                            echo "=== 6. Vérification avant réinstallation ==="
+
+                            kubectl get pods -n default
+                            kubectl get pvc -n default
+
+                            echo "=== 7. Création du Secret applicatif ==="
+
+                            kubectl create secret generic fastapi-secret \
+                                --from-literal=POSTGRES_USER="$POSTGRES_USER" \
+                                --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+                                --from-literal=FIRST_SUPERUSER_PASSWORD="$FIRST_SUPERUSER_PASSWORD" \
+                                --from-literal=SECRET_KEY="$SECRET_KEY" \
+                                --dry-run=client -o yaml | kubectl apply -f -
+
+                            echo "=== 8. Validation du chart Helm ==="
+
+                            helm lint .
+
+                            echo "=== 9. Nouvelle installation Helm ==="
+
+                            helm upgrade --install fastapi . \
+                                --namespace default \
+                                --set-string secrets.postgresUser="$POSTGRES_USER" \
+                                --set-string secrets.postgresPassword="$POSTGRES_PASSWORD" \
+                                --set-string secrets.postgresDb=fastapi \
+                                --set-string secrets.secretKey="$SECRET_KEY" \
+                                --set-string secrets.firstSuperuserPassword="$FIRST_SUPERUSER_PASSWORD" \
+                                --wait \
+                                --timeout 5m
+
+                            echo "=== 10. Vérification finale ==="
+
+                            kubectl rollout status statefulset/db \
+                                -n default \
+                                --timeout=180s
+
+                            kubectl get pods -n default
+                            kubectl get pvc -n default
+                            kubectl get pv
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}
