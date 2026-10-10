@@ -12,9 +12,18 @@ pipeline {
             steps {
                 dir('fastapi/infra') {
                     withCredentials([
-                        string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
-                        string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
-                        string(credentialsId: 'ssh-public-key', variable: 'SSH_PUBLIC_KEY')
+                        string(
+                            credentialsId: 'proxmox-endpoint',
+                            variable: 'PROXMOX_VE_ENDPOINT'
+                        ),
+                        string(
+                            credentialsId: 'proxmox-token',
+                            variable: 'PROXMOX_VE_API_TOKEN'
+                        ),
+                        string(
+                            credentialsId: 'ssh-public-key',
+                            variable: 'SSH_PUBLIC_KEY'
+                        )
                     ]) {
                         sh '''
                             set -e
@@ -37,7 +46,10 @@ pipeline {
             steps {
                 dir('fastapi/config') {
                     withCredentials([
-                        string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')
+                        string(
+                            credentialsId: 'ansible-vault-password',
+                            variable: 'VAULT_PASSWORD'
+                        )
                     ]) {
                         sh '''
                             set -e
@@ -62,8 +74,14 @@ pipeline {
             steps {
                 dir('fastapi/config') {
                     withCredentials([
-                        string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD'),
-                        sshUserPrivateKey(credentialsId: 'ssh-private-key', keyFileVariable: 'SSH_KEY')
+                        string(
+                            credentialsId: 'ansible-vault-password',
+                            variable: 'VAULT_PASSWORD'
+                        ),
+                        sshUserPrivateKey(
+                            credentialsId: 'ssh-private-key',
+                            keyFileVariable: 'SSH_KEY'
+                        )
                     ]) {
                         sh '''
                             set -e
@@ -90,14 +108,49 @@ pipeline {
             steps {
                 dir('fastapi/app') {
                     withCredentials([
-                        string(credentialsId: 'postgres-user', variable: 'POSTGRES_USER'),
-                        string(credentialsId: 'postgres-password', variable: 'POSTGRES_PASSWORD'),
-                        string(credentialsId: 'first-superuser-password', variable: 'FIRST_SUPERUSER_PASSWORD'),
-                        string(credentialsId: 'fastapi-secret-key', variable: 'SECRET_KEY')
+                        string(
+                            credentialsId: 'postgres-user',
+                            variable: 'POSTGRES_USER'
+                        ),
+                        string(
+                            credentialsId: 'postgres-password',
+                            variable: 'POSTGRES_PASSWORD'
+                        ),
+                        string(
+                            credentialsId: 'first-superuser-password',
+                            variable: 'FIRST_SUPERUSER_PASSWORD'
+                        ),
+                        string(
+                            credentialsId: 'fastapi-secret-key',
+                            variable: 'SECRET_KEY'
+                        )
                     ]) {
                         sh '''
                             set -e
                             set +x
+
+                            # Vérifier que les credentials Jenkins sont renseignés
+                            if [ -z "$POSTGRES_USER" ]; then
+                                echo "ERREUR : le credential postgres-user est vide."
+                                exit 1
+                            fi
+
+                            if [ -z "$POSTGRES_PASSWORD" ]; then
+                                echo "ERREUR : le credential postgres-password est vide."
+                                exit 1
+                            fi
+
+                            if [ -z "$FIRST_SUPERUSER_PASSWORD" ]; then
+                                echo "ERREUR : le credential first-superuser-password est vide."
+                                exit 1
+                            fi
+
+                            if [ -z "$SECRET_KEY" ]; then
+                                echo "ERREUR : le credential fastapi-secret-key est vide."
+                                exit 1
+                            fi
+
+                            echo "Vérification des credentials : OK"
 
                             # Secret utilisé par PostgreSQL
                             kubectl create secret generic db-secret \
@@ -114,10 +167,10 @@ pipeline {
                                 --from-literal=SECRET_KEY="$SECRET_KEY" \
                                 --dry-run=client -o yaml | kubectl apply -f -
 
-                            # Vérification du chart Helm
+                            # Vérifier le chart Helm
                             helm lint .
 
-                            # Déploiement ou mise à jour de l'application
+                            # Déployer ou mettre à jour l'application
                             helm upgrade --install fastapi .
                         '''
                     }
