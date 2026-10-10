@@ -106,14 +106,41 @@ pipeline {
         stage('Deploy on Kubernetes') {
             steps {
                 dir('fastapi/app') {
-                    sh '''
-                        set -e
+                    withCredentials([
+                        string(
+                            credentialsId: 'postgres-user',
+                            variable: 'POSTGRES_USER'
+                        ),
+                        string(
+                            credentialsId: 'postgres-password',
+                            variable: 'POSTGRES_PASSWORD'
+                        ),
+                        string(
+                            credentialsId: 'first-superuser-password',
+                            variable: 'FIRST_SUPERUSER_PASSWORD'
+                        ),
+                        string(
+                            credentialsId: 'fastapi-secret-key',
+                            variable: 'SECRET_KEY'
+                        )
+                    ]) {
+                        sh '''
+                            set -e
+                            set +x
 
-                        helm version
-                        kubectl get nodes
+                            kubectl create secret generic fastapi-secret \
+                                --from-literal=POSTGRES_USER="$POSTGRES_USER" \
+                                --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+                                --from-literal=FIRST_SUPERUSER_PASSWORD="$FIRST_SUPERUSER_PASSWORD" \
+                                --from-literal=SECRET_KEY="$SECRET_KEY" \
+                                --dry-run=client -o yaml | kubectl apply -f -
 
-                        helm upgrade --install fastapi .
-                    '''
+                            helm version
+                            kubectl get nodes
+
+                            helm upgrade --install fastapi .
+                        '''
+                    }
                 }
             }
         }
