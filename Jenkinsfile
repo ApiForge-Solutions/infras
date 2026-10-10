@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -27,7 +26,9 @@ pipeline {
                         )
                     ]) {
                         sh '''
+                            set -e
                             set +x
+
                             export TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY"
 
                             terraform init
@@ -50,7 +51,9 @@ pipeline {
                         )
                     ]) {
                         sh '''
+                            set -e
                             set +x
+
                             VAULT_FILE=$(mktemp)
                             trap 'rm -f "$VAULT_FILE"' EXIT
 
@@ -80,7 +83,9 @@ pipeline {
                         )
                     ]) {
                         sh '''
+                            set -e
                             set +x
+
                             VAULT_FILE=$(mktemp)
                             trap 'rm -f "$VAULT_FILE"' EXIT
 
@@ -94,6 +99,21 @@ pipeline {
                                 playbook.yaml
                         '''
                     }
+                }
+            }
+        }
+
+        stage('Deploy on Kubernetes') {
+            steps {
+                dir('fastapi/app') {
+                    sh '''
+                        set -e
+
+                        helm version
+                        kubectl get nodes
+
+                        helm upgrade --install fastapi .
+                    '''
                 }
             }
         }
