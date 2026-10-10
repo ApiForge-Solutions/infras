@@ -54,3 +54,4 @@ secrets:
   postgresDb: ""
   secretKey: ""
   firstSuperuserPassword: ""
+  host: "api-demo.apiforge.cloud-ip.cc"
