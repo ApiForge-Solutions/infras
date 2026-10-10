@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ include "fastapi.fullname" . }}-backend
+
+spec:
+  replicas: {{ .Values.backend.replicas }}
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+
+          ports:
+            - containerPort: {{ .Values.backend.containerPort }}
+
+          env:
+            - name: DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: DOMAIN
+
+            - name: FRONTEND_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: FRONTEND_HOST
+
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: ENVIRONMENT
+
+            - name: PROJECT_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PROJECT_NAME
+
+            - name: FIRST_SUPERUSER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: FIRST_SUPERUSER
+
+            - name: FIRST_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: FIRST_SUPERUSER_PASSWORD
+
+            - name: BACKEND_CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: BACKEND_CORS_ORIGINS
+
+            - name: POSTGRES_SERVER
+              value: {{ .Values.backend.database.host | quote }}
+
+            - name: POSTGRES_PORT
+              value: {{ .Values.backend.database.port | quote }}
+
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_DB
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: SECRET_KEY
+
+          readinessProbe:
+            httpGet:
+              path: /api/v1/utils/health-check/
+              port: {{ .Values.backend.containerPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /api/v1/utils/health-check/
+              port: {{ .Values.backend.containerPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 10

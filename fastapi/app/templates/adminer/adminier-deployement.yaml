@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: {{ include "fastapi.fullname" . }}-adminer
+
+spec:
+  replicas: {{ .Values.adminer.replicas }}
+
+  selector:
+    matchLabels:
+      app: adminer
+
+  template:
+    metadata:
+      labels:
+        app: adminer
+
+    spec:
+      containers:
+        - name: adminer
+          image: "{{ .Values.adminer.image.repository }}:{{ .Values.adminer.image.tag }}"
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.adminer.containerPort }}
+
+          env:
+            - name: ADMINER_DESIGN
+              value: {{ .Values.adminer.design | quote }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.adminer.resources.requests.cpu }}
+              memory: {{ .Values.adminer.resources.requests.memory }}
+
+            limits:
+              cpu: {{ .Values.adminer.resources.limits.cpu }}
+              memory: {{ .Values.adminer.resources.limits.memory }}

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  DOMAIN: "localhost"
+  FRONTEND_HOST: "https://api-demo.apiforge.cloud-ip.cc"
+  ENVIRONMENT: "local"
+  PROJECT_NAME: "FastAPI"
+  FIRST_SUPERUSER: "aapiforgesolutions@gmail.com"
+  BACKEND_CORS_ORIGINS: '["http://api-demo.apiforge.cloud-ip.cc"]'

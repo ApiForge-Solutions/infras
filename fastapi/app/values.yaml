@@ -1,0 +1,56 @@
+adminer:
+  replicas: 1
+
+  image:
+    repository: adminer
+    tag: latest
+
+  containerPort: 8080
+
+  design: pepa-linha-dark
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+
+backend:
+  replicas: 2
+
+  image:
+    repository: abzh29/api_traefik
+    tag: backend
+
+  containerPort: 8000
+
+  database:
+    host: db
+    port: 5432
+
+
+frontend:
+  replicas: 2
+
+  image:
+    repository: abzh29/api_traefik
+    tag: frontend
+
+  containerPort: 80
+
+
+database:
+  storage:
+    size: 5Gi
+
+
+secrets:
+  postgresUser: ""
+  postgresPassword: ""
+  postgresDb: ""
+  secretKey: ""
+  firstSuperuserPassword: ""
