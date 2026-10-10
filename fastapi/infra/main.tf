@@ -69,8 +69,7 @@ module "vm_Minio" {
   ssh_public_key                = var.ssh_public_key
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
-  ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id
-  disk_size = var.disk_size   
+  ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id   
 }
 
 
