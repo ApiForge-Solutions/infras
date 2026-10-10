@@ -5,8 +5,6 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
-  volumeName: db-pv 
   resources:
     requests:
-      storage: {{ .Values.database.storage.size }}
+      storage: 1Gi
