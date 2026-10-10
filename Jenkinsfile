@@ -12,21 +12,12 @@ pipeline {
             steps {
                 dir('fastapi/infra') {
                     withCredentials([
-                        string(
-                            credentialsId: 'proxmox-endpoint',
-                            variable: 'PROXMOX_VE_ENDPOINT'
-                        ),
-                        string(
-                            credentialsId: 'proxmox-token',
-                            variable: 'PROXMOX_VE_API_TOKEN'
-                        ),
-                        string(
-                            credentialsId: 'ssh-public-key',
-                            variable: 'SSH_PUBLIC_KEY'
-                        )
+                        string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
+                        string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
+                        string(credentialsId: 'ssh-public-key', variable: 'SSH_PUBLIC_KEY')
                     ]) {
                         sh '''
-                            set -e
+                            set -eu
                             set +x
 
                             export TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY"
@@ -46,13 +37,10 @@ pipeline {
             steps {
                 dir('fastapi/config') {
                     withCredentials([
-                        string(
-                            credentialsId: 'ansible-vault-password',
-                            variable: 'VAULT_PASSWORD'
-                        )
+                        string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')
                     ]) {
                         sh '''
-                            set -e
+                            set -eu
                             set +x
 
                             VAULT_FILE=$(mktemp)
@@ -74,17 +62,11 @@ pipeline {
             steps {
                 dir('fastapi/config') {
                     withCredentials([
-                        string(
-                            credentialsId: 'ansible-vault-password',
-                            variable: 'VAULT_PASSWORD'
-                        ),
-                        sshUserPrivateKey(
-                            credentialsId: 'ssh-private-key',
-                            keyFileVariable: 'SSH_KEY'
-                        )
+                        string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD'),
+                        sshUserPrivateKey(credentialsId: 'ssh-private-key', keyFileVariable: 'SSH_KEY')
                     ]) {
                         sh '''
-                            set -e
+                            set -eu
                             set +x
 
                             VAULT_FILE=$(mktemp)
@@ -108,48 +90,46 @@ pipeline {
             steps {
                 dir('fastapi/app') {
                     withCredentials([
-                        string(
-                            credentialsId: 'postgres-user',
-                            variable: 'POSTGRES_USER'
-                        ),
-                        string(
-                            credentialsId: 'postgres-password',
-                            variable: 'POSTGRES_PASSWORD'
-                        ),
-                        string(
-                            credentialsId: 'first-superuser-password',
-                            variable: 'FIRST_SUPERUSER_PASSWORD'
-                        ),
-                        string(
-                            credentialsId: 'fastapi-secret-key',
-                            variable: 'SECRET_KEY'
-                        )
+                        string(credentialsId: 'postgres-user', variable: 'POSTGRES_USER'),
+                        string(credentialsId: 'postgres-password', variable: 'POSTGRES_PASSWORD'),
+                        string(credentialsId: 'first-superuser-password', variable: 'FIRST_SUPERUSER_PASSWORD'),
+                        string(credentialsId: 'fastapi-secret-key', variable: 'SECRET_KEY')
                     ]) {
                         sh '''
-                            set -e
+                            set -eu
                             set +x
 
-                            # Vérification que les credentials Jenkins ne sont pas vides
-                            if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ]; then
-                                echo "ERREUR : Les identifiants PostgreSQL sont vides dans Jenkins !"
+                            # Vérifier les credentials sans révéler leurs valeurs
+                            test -n "$POSTGRES_USER" || {
+                                echo "ERREUR : le credential postgres-user est vide."
                                 exit 1
-                            fi
+                            }
 
-                            if [ -z "$FIRST_SUPERUSER_PASSWORD" ] || [ -z "$SECRET_KEY" ]; then
-                                echo "ERREUR : Les identifiants FastAPI sont vides dans Jenkins !"
+                            test -n "$POSTGRES_PASSWORD" || {
+                                echo "ERREUR : le credential postgres-password est vide."
                                 exit 1
-                            fi
+                            }
+
+                            test -n "$FIRST_SUPERUSER_PASSWORD" || {
+                                echo "ERREUR : le credential first-superuser-password est vide."
+                                exit 1
+                            }
+
+                            test -n "$SECRET_KEY" || {
+                                echo "ERREUR : le credential fastapi-secret-key est vide."
+                                exit 1
+                            }
 
                             echo "Vérification des credentials : OK"
 
-                            # Création sécurisée et idempotente du secret PostgreSQL
+                            # Créer ou mettre à jour le Secret PostgreSQL
                             kubectl create secret generic db-secret \
                                 --from-literal=POSTGRES_USER="$POSTGRES_USER" \
                                 --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
                                 --from-literal=POSTGRES_DB="fastapi" \
                                 --dry-run=client -o yaml | kubectl apply -f -
 
-                            # Création sécurisée et idempotente du secret FastAPI
+                            # Créer ou mettre à jour le Secret FastAPI
                             kubectl create secret generic fastapi-secret \
                                 --from-literal=POSTGRES_USER="$POSTGRES_USER" \
                                 --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
@@ -157,10 +137,21 @@ pipeline {
                                 --from-literal=SECRET_KEY="$SECRET_KEY" \
                                 --dry-run=client -o yaml | kubectl apply -f -
 
-                            # Vérification du chart Helm
+                            # Vérifier la valeur réellement stockée dans Kubernetes
+                            PASSWORD_LENGTH=$(kubectl get secret db-secret \
+                                -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d | wc -c)
+
+                            if [ "$PASSWORD_LENGTH" -eq 0 ]; then
+                                echo "ERREUR : le mot de passe stocké dans db-secret est vide."
+                                exit 1
+                            fi
+
+                            echo "Vérification du Secret Kubernetes : OK"
+
+                            # Vérifier le chart Helm
                             helm lint .
 
-                            # Déploiement ou mise à jour via Helm
+                            # Déployer ou mettre à jour l'application
                             helm upgrade --install fastapi .
                         '''
                     }
