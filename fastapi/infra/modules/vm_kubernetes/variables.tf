@@ -45,3 +45,9 @@ variable "disk_datastore_id" {
 variable "ubuntu_image_id" {
   type = string
 }
+
+variable "disk_size" {
+description = "Taille du disque système de la VM en Go"
+type        = number
+default     = 30
+}

@@ -41,7 +41,7 @@ module "vm_master" {
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
   ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id
-
+  disk_size = var.disk_size
   
 }
 
@@ -56,7 +56,7 @@ module "vm_worker" {
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
   ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id
-
+  disk_size = var.disk_size
 }
 
 
@@ -70,7 +70,7 @@ module "vm_Minio" {
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
   ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id
-
+  disk_size = var.disk_size   
 }
 
 

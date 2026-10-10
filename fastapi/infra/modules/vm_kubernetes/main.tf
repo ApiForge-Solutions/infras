@@ -45,7 +45,7 @@ scsi_hardware = "virtio-scsi-single"
 
     interface = "scsi0"
     iothread  = true
-    size      = 10
+    size      = var.disk_size
     discard   = "on"
   }
 

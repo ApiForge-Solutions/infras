@@ -74,3 +74,8 @@ variable "network_bridge" {
   type        = string
   default     = "vmbr0"
 }
+variable "disk_size" {
+description = "Taille du disque système des VM en Go"
+type        = number
+default     = 20
+}
