@@ -129,37 +129,27 @@ pipeline {
                             set -e
                             set +x
 
-                            # Vérifier que les credentials Jenkins sont renseignés
-                            if [ -z "$POSTGRES_USER" ]; then
-                                echo "ERREUR : le credential postgres-user est vide."
+                            # Vérification que les credentials Jenkins ne sont pas vides
+                            if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ]; then
+                                echo "ERREUR : Les identifiants PostgreSQL sont vides dans Jenkins !"
                                 exit 1
                             fi
 
-                            if [ -z "$POSTGRES_PASSWORD" ]; then
-                                echo "ERREUR : le credential postgres-password est vide."
-                                exit 1
-                            fi
-
-                            if [ -z "$FIRST_SUPERUSER_PASSWORD" ]; then
-                                echo "ERREUR : le credential first-superuser-password est vide."
-                                exit 1
-                            fi
-
-                            if [ -z "$SECRET_KEY" ]; then
-                                echo "ERREUR : le credential fastapi-secret-key est vide."
+                            if [ -z "$FIRST_SUPERUSER_PASSWORD" ] || [ -z "$SECRET_KEY" ]; then
+                                echo "ERREUR : Les identifiants FastAPI sont vides dans Jenkins !"
                                 exit 1
                             fi
 
                             echo "Vérification des credentials : OK"
 
-                            # Secret utilisé par PostgreSQL
+                            # Création sécurisée et idempotente du secret PostgreSQL
                             kubectl create secret generic db-secret \
                                 --from-literal=POSTGRES_USER="$POSTGRES_USER" \
                                 --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
                                 --from-literal=POSTGRES_DB="fastapi" \
                                 --dry-run=client -o yaml | kubectl apply -f -
 
-                            # Secret utilisé par FastAPI
+                            # Création sécurisée et idempotente du secret FastAPI
                             kubectl create secret generic fastapi-secret \
                                 --from-literal=POSTGRES_USER="$POSTGRES_USER" \
                                 --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
@@ -167,10 +157,10 @@ pipeline {
                                 --from-literal=SECRET_KEY="$SECRET_KEY" \
                                 --dry-run=client -o yaml | kubectl apply -f -
 
-                            # Vérifier le chart Helm
+                            # Vérification du chart Helm
                             helm lint .
 
-                            # Déployer ou mettre à jour l'application
+                            # Déploiement ou mise à jour via Helm
                             helm upgrade --install fastapi .
                         '''
                     }
