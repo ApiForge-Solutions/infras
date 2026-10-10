@@ -34,6 +34,7 @@ pipeline {
                             terraform init
                             terraform validate
                             terraform apply -auto-approve -var-file="terraform.tfvars"
+
                             terraform output -json ansible_inventory > ../config/ansible_inventory.json
                         '''
                     }
@@ -116,6 +117,10 @@ pipeline {
                             variable: 'POSTGRES_PASSWORD'
                         ),
                         string(
+                            credentialsId: 'postgres-db',
+                            variable: 'POSTGRES_DB'
+                        ),
+                        string(
                             credentialsId: 'first-superuser-password',
                             variable: 'FIRST_SUPERUSER_PASSWORD'
                         ),
@@ -128,6 +133,14 @@ pipeline {
                             set -e
                             set +x
 
+                            # Secret utilise par PostgreSQL
+                            kubectl create secret generic db-secret \
+                                --from-literal=POSTGRES_USER="$POSTGRES_USER" \
+                                --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+                                --from-literal=POSTGRES_DB="$POSTGRES_DB" \
+                                --dry-run=client -o yaml | kubectl apply -f -
+
+                            # Secret utilise par l'application FastAPI
                             kubectl create secret generic fastapi-secret \
                                 --from-literal=POSTGRES_USER="$POSTGRES_USER" \
                                 --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
