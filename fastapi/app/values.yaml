@@ -54,4 +54,5 @@ secrets:
   postgresDb: ""
   secretKey: ""
   firstSuperuserPassword: ""
+ingress:
   host: "api-demo.apiforge.cloud-ip.cc"
