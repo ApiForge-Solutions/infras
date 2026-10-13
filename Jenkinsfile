@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+        stage('Check du dépôt Git') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Terraform Init and Apply') {
+        stage('Install infra terraform ') {
             steps {
                 dir('fastapi/infra') {
                     withCredentials([
@@ -33,7 +33,7 @@ pipeline {
             }
         }
 
-        stage('Generate Ansible Inventory') {
+        stage(' création inventaire pour Ansible') {
             steps {
                 dir('fastapi/config') {
                     withCredentials([
@@ -59,7 +59,7 @@ pipeline {
             }
         }
 
-        stage('Run Ansible') {
+        stage('Install cluster Ansible') {
             steps {
                 dir('fastapi/config') {
                     withCredentials([
@@ -86,7 +86,7 @@ pipeline {
             }
         }
 
-        stage('Deploy on Kubernetes') {
+        stage('Install Fastapi Kubernetes') {
             steps {
                 dir('fastapi/app') {
                     withCredentials([
