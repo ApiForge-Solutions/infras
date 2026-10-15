@@ -13,6 +13,7 @@
       - kubernetes
       - pyyaml
     executable: pip3
+    extra_args: --break-system-packages
 
 - name: Créer le namespace pour MinIO et Velero
   kubernetes.core.k8s:
