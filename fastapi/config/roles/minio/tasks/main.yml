@@ -1,6 +1,12 @@
 ---
 # tasks file for minio
 
+- name: Installer python3-pip sur la machine distante
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+    update_cache: true
+
 - name: Installer la bibliothèque Python kubernetes
   ansible.builtin.pip:
     name: 
