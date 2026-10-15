@@ -30,8 +30,8 @@ stage('Connexion Docker') {
             steps {
                 sh '''
                 export DOCKER_BUILDKIT=1
-                docker build -t abzh29/api_traefik ./backend
-                docker build -t abzh29/api_traefik ./frontend
+                docker build -t abzh29/api_traefik:backend ./backend
+                docker build -t abzh29/api_traefik:frontend ./frontend
                 '''
             }
         }
