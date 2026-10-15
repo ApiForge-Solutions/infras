@@ -3,7 +3,9 @@
 
 - name: Installer la bibliothèque Python kubernetes
   ansible.builtin.pip:
-    name: kubernetes
+    name: 
+      - kubernetes
+      - pyyaml
     executable: pip3
 
 - name: Créer le namespace pour MinIO et Velero
