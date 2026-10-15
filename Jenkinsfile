@@ -2,15 +2,57 @@ pipeline {
     agent any
 
     stages {
-        stage('Check du dépôt Git') {
+        stage('Récupération du dépôt infrastructure') {
+    steps {
+        dir('infras') {
+            git branch: 'dev',
+                url: 'https://github.com/ApiForge-Solutions/infras.git'
+        }
+    }
+}
+        stage('récupération du code de base') {
+    steps {
+        git branch: 'main',
+            url: 'https://github.com/DataScientest/fastapi-traefik-datascientest-project.git'
+    }
+}
+stage('Connexion Docker') {
+            environment {
+                DOCKER_HUB_PASS = credentials('DOCKER_HUB_PASS')
+            }
+
             steps {
-                checkout scm
+                sh '''
+                echo $DOCKER_HUB_PASS | docker login \
+                -u abzh29 \
+                --password-stdin
+                '''
+            }
+        }
+         stage('Build Docker') {
+            steps {
+                sh '''
+                export DOCKER_BUILDKIT=1
+                docker build -t abzh29/api_traefik:backend ./backend
+                docker build -t abzh29/api_traefik:frontend ./frontend
+                '''
             }
         }
 
+        stage('Push Docker') {
+            steps {
+                sh '''
+                docker push abzh29/api_traefik:backend
+                docker push abzh29/api_traefik:frontend
+                '''
+            }
+        }
+
+    
+
         stage('Install infra terraform ') {
             steps {
-                dir('fastapi/infra') {
+                dir('infras/fastapi/infra') {
                     withCredentials([
                         string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
                         string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
@@ -35,7 +77,7 @@ pipeline {
 
         stage(' création inventaire pour Ansible') {
             steps {
-                dir('fastapi/config') {
+                dir('infras/fastapi/config') {
                     withCredentials([
                         string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')
                     ]) {
@@ -61,7 +103,7 @@ pipeline {
 
         stage('Install cluster Ansible') {
             steps {
-                dir('fastapi/config') {
+                dir('infras/fastapi/config') {
                     withCredentials([
                         string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD'),
                         sshUserPrivateKey(credentialsId: 'ssh-private-key', keyFileVariable: 'SSH_KEY')
@@ -88,7 +130,7 @@ pipeline {
 
         stage('Install Fastapi Kubernetes') {
             steps {
-                dir('fastapi/app') {
+                dir('infras/fastapi/app') {
                     withCredentials([
                         string(credentialsId: 'postgres-user', variable: 'POSTGRES_USER'),
                         string(credentialsId: 'postgres-password', variable: 'POSTGRES_PASSWORD'),
