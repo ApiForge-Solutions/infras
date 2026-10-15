@@ -42,4 +42,7 @@ MONITORING_NAMESPACE: "monitoring"
 # CD VARS
 ARGOCD_NAMESPACE: "argocd"
 
+# VELEO VARS
+MINIO_S3_URL: "http://{{ hostvars['minio_server'].ansible_host }}:9000"
+
 ansible_python_interpreter: /usr/bin/python3

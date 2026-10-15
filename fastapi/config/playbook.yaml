@@ -38,3 +38,15 @@
     - metallb
     - cert-manager
     - traefik
+
+- name: Install MinIO
+  hosts: minio
+  become: true
+  roles:
+    - minio
+
+- name: Install Velero
+  hosts: velero
+  become: true
+  roles:
+    - minio

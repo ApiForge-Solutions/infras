@@ -58,7 +58,7 @@
           config:
             region: minio
             s3ForcePathStyle: true
-            s3Url: http://minio.{{ VELERO_NAMESPACE }}.svc.cluster.local:9000
+            s3Url: "{{ MINIO_S3_URL }}"
 
       deployNodeAgent: true
 
