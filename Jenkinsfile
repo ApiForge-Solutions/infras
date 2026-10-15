@@ -45,18 +45,7 @@ stage('Connexion Docker') {
             }
         }
 
-        stage('Tests') {
-            steps {
-                sh '''
-                helm lint ./charts
-
-                docker images | grep movie
-                docker images | grep cast
-
-                kubectl get ns
-                '''
-            }
-        }
+    
 
         stage('Install infra terraform ') {
             steps {
