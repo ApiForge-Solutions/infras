@@ -46,7 +46,7 @@
     - minio
 
 - name: Install Velero
-  hosts: velero
+  hosts: k8s_masters
   become: true
   roles:
     - minio
