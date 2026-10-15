@@ -7,6 +7,55 @@ pipeline {
                 checkout scm
             }
         }
+        stage('récupération du code de base') {
+    steps {
+        git branch: 'main',
+            url: 'https://github.com/DataScientest/fastapi-traefik-datascientest-project.git'
+    }
+}
+stage('Connexion Docker') {
+            environment {
+                DOCKER_HUB_PASS = credentials('DOCKER_HUB_PASS')
+            }
+
+            steps {
+                sh '''
+                echo $DOCKER_HUB_PASS | docker login \
+                -u abzh29 \
+                --password-stdin
+                '''
+            }
+        }
+         stage('Build Docker') {
+            steps {
+                sh '''
+                docker build -t abzh29/api_traefik ./backend
+                docker build -t abzh29/api_traefik ./frontend
+                '''
+            }
+        }
+
+        stage('Push Docker') {
+            steps {
+                sh '''
+                docker push abzh29/api_traefik:backend
+                docker push abzh29/api_traefik:frontend
+                '''
+            }
+        }
+
+        stage('Tests') {
+            steps {
+                sh '''
+                helm lint ./charts
+
+                docker images | grep movie
+                docker images | grep cast
+
+                kubectl get ns
+                '''
+            }
+        }
 
         stage('Install infra terraform ') {
             steps {
