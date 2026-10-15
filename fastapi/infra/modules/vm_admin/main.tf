@@ -43,7 +43,7 @@ scsi_hardware = "virtio-scsi-single"
 
     interface = "scsi0"
     iothread  = true
-    size      = 10
+    size      = 30
     discard   = "on"
   }
 
