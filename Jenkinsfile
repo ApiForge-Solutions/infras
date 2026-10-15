@@ -2,11 +2,14 @@ pipeline {
     agent any
 
     stages {
-        stage('Check du dépôt Git') {
-            steps {
-                checkout scm
-            }
+        stage('Récupération du dépôt infrastructure') {
+    steps {
+        dir('infras') {
+            git branch: 'dev',
+                url: 'https://github.com/ApiForge-Solutions/infras.git'
         }
+    }
+}
         stage('récupération du code de base') {
     steps {
         git branch: 'main',
@@ -49,7 +52,7 @@ stage('Connexion Docker') {
 
         stage('Install infra terraform ') {
             steps {
-                dir('fastapi/infra') {
+                dir('infras/fastapi/infra') {
                     withCredentials([
                         string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
                         string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
@@ -74,7 +77,7 @@ stage('Connexion Docker') {
 
         stage(' création inventaire pour Ansible') {
             steps {
-                dir('fastapi/config') {
+                dir('infras/fastapi/config') {
                     withCredentials([
                         string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')
                     ]) {
@@ -100,7 +103,7 @@ stage('Connexion Docker') {
 
         stage('Install cluster Ansible') {
             steps {
-                dir('fastapi/config') {
+                dir('infras/fastapi/config') {
                     withCredentials([
                         string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD'),
                         sshUserPrivateKey(credentialsId: 'ssh-private-key', keyFileVariable: 'SSH_KEY')
@@ -127,7 +130,7 @@ stage('Connexion Docker') {
 
         stage('Install Fastapi Kubernetes') {
             steps {
-                dir('fastapi/app') {
+                dir('infras/fastapi/app') {
                     withCredentials([
                         string(credentialsId: 'postgres-user', variable: 'POSTGRES_USER'),
                         string(credentialsId: 'postgres-password', variable: 'POSTGRES_PASSWORD'),
