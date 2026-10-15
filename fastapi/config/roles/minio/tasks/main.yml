@@ -1,6 +1,11 @@
 ---
 # tasks file for minio
 
+- name: Installer la bibliothèque Python kubernetes
+  ansible.builtin.pip:
+    name: kubernetes
+    executable: pip3
+
 - name: Créer le namespace pour MinIO et Velero
   kubernetes.core.k8s:
     name: "{{ MINIO_NAMESPACE }}"
