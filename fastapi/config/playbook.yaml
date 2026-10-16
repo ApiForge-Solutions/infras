@@ -24,6 +24,12 @@
   roles:
     - k8s-worker
 
+- name: Install MinIO
+  hosts: minio
+  become: true
+  roles:
+    - minio
+
 - name: Cluster add-ons
   hosts: k8s_masters
   become: true
@@ -38,15 +44,4 @@
     - metallb
     - cert-manager
     - traefik
-
-- name: Install MinIO
-  hosts: minio
-  become: true
-  roles:
-    - minio
-
-- name: Install Velero
-  hosts: k8s_masters
-  become: true
-  roles:
-    - minio
+    - velero
