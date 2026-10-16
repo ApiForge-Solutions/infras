@@ -57,9 +57,3 @@
     - cert-manager
     - traefik
     - velero
-
-#- name: monitoring
-#  hosts: monitoring
-#  become: true
-#  roles:
-#    - monitoring
