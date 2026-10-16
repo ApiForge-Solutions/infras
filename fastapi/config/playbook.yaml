@@ -3,6 +3,18 @@
  # roles:
   #  - proxmox-traffic
 
+- name: Metrics agents
+  hosts: k8s_global:minio:monitoring:jenkins
+  become: true
+  roles:
+    - node-exporter
+
+- name: Monitoring server
+  hosts: monitoring
+  become: true
+  roles:
+    - monitoring
+
 - name: Kubernetes global config
   hosts: k8s_global
   become: true
@@ -45,3 +57,9 @@
     - cert-manager
     - traefik
     - velero
+
+#- name: monitoring
+#  hosts: monitoring
+#  become: true
+#  roles:
+#    - monitoring
