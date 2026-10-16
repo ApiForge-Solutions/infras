@@ -38,6 +38,7 @@
       MINIO_ROOT_PASSWORD={{ MINIO_ROOT_PASSWORD }}
       MINIO_VOLUMES={{ MINIO_DATA_DIR }}
       MINIO_OPTS="--address :{{ MINIO_API_PORT }} --console-address :{{ MINIO_CONSOLE_PORT }}"
+      MINIO_PROMETHEUS_AUTH_TYPE=public
   no_log: true
   notify: restart minio
 
