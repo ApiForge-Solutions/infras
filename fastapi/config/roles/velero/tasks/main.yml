@@ -1,5 +1,5 @@
+#SPDX-License-Identifier: MIT-0
 ---
-# tasks file for velero
 - name: Deploy Velero (first master only)
   run_once: true
   delegate_to: "{{ groups['k8s_masters'][0] }}"
@@ -7,16 +7,24 @@
     KUBECONFIG: "{{ KUBECONFIG_PATH }}"
   block:
 
-    - name: Create Velero namespace
+    - name: Check that the MinIO server answers
+      ansible.builtin.uri:
+        url: "{{ MINIO_S3_URL }}/minio/health/live"
+        status_code: 200
+      register: minio_health
+      until: minio_health.status == 200
+      retries: 6
+      delay: 10
+
+    - name: Create the Velero namespace
       kubernetes.core.k8s:
         name: "{{ VELERO_NAMESPACE }}"
         api_version: v1
         kind: Namespace
         state: present
         kubeconfig: "{{ KUBECONFIG_PATH }}"
-      #run_once: true
 
-    - name: Create Kubernetes secret for Velero credentials
+    - name: Create the Secret with the Velero S3 credentials
       kubernetes.core.k8s:
         state: present
         kubeconfig: "{{ KUBECONFIG_PATH }}"
@@ -30,17 +38,15 @@
           stringData:
             cloud: |
               [default]
-              aws_access_key_id={{ MINIO_ROOT_USER }}
-              aws_secret_access_key={{ MINIO_ROOT_PASSWORD }}
+              aws_access_key_id={{ VELERO_S3_USER }}
+              aws_secret_access_key={{ VELERO_S3_PASSWORD }}
       no_log: true
-      #run_once: true
 
-    - name: Add Velero Helm repository
+    - name: Add the Velero Helm repository
       kubernetes.core.helm_repository:
         name: vmware-tanzu
         repo_url: https://vmware-tanzu.github.io/helm-charts
         force_update: true
-      #run_once: true
 
     - name: Deploy Velero via Helm
       kubernetes.core.helm:
@@ -53,22 +59,20 @@
         wait: true
         wait_timeout: 10m
         values:
+          snapshotsEnabled: false
           credentials:
             existingSecret: minio-credentials
-
           configuration:
             backupStorageLocation:
-              name: default
-              provider: aws
-              bucket: "{{ BUCKET_NAME }}"
-              default: true
-              config:
-                region: minio
-                s3ForcePathStyle: true
-                s3Url: "{{ MINIO_S3_URL }}"
-
+              - name: default
+                provider: aws
+                bucket: "{{ BUCKET_NAME }}"
+                default: true
+                config:
+                  region: minio
+                  s3ForcePathStyle: "true"
+                  s3Url: "{{ MINIO_S3_URL }}"
           deployNodeAgent: true
-
           initContainers:
             - name: velero-plugin-for-aws
               image: "{{ VELERO_PLUGIN_AWS_IMAGE }}"
@@ -76,7 +80,6 @@
               volumeMounts:
                 - mountPath: /target
                   name: plugins
-          
           schedules:
             daily:
               schedule: "{{ VELERO_SCHEDULE_CRON }}"
@@ -84,9 +87,8 @@
                 ttl: "{{ VELERO_SCHEDULE_TTL }}"
                 includedNamespaces: "{{ VELERO_BACKUP_NAMESPACES }}"
                 defaultVolumesToFsBackup: true
-      #run_once: true
 
-    - name: Verify that the backup storage is accessible
+    - name: Wait for the backup storage to be Available
       kubernetes.core.k8s_info:
         api_version: velero.io/v1
         kind: BackupStorageLocation
@@ -94,15 +96,15 @@
         namespace: "{{ VELERO_NAMESPACE }}"
         kubeconfig: "{{ KUBECONFIG_PATH }}"
       register: velero_bsl
-      until: velero_bsl.resources[0].status.phase | default('') == 'Available'
-      retries: 12
+      until: >
+        velero_bsl.resources | length > 0 and
+        (velero_bsl.resources[0].status.phase | default('')) == 'Available'
+      retries: 18
       delay: 10
-      #run_once: true
 
-    - name: Display Velero status
+    - name: Show the Velero status
       ansible.builtin.debug:
         msg:
           - "Velero deployed in namespace {{ VELERO_NAMESPACE }}"
-          - "Storage: {{ velero_bsl.resources[0].status.phase }} on {{ BUCKET_NAME }}"
+          - "Storage: {{ velero_bsl.resources[0].status.phase }} on {{ BUCKET_NAME }} at {{ MINIO_S3_URL }}"
           - "Daily backup: {{ VELERO_SCHEDULE_CRON }}, retention {{ VELERO_SCHEDULE_TTL }}"
-      #run_once: true
