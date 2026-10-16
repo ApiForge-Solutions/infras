@@ -1,2 +1,7 @@
+# roles/minio/defaults/main.yml
 ---
-# defaults file for minio
+MINIO_BINARY_URL: "https://dl.min.io/server/minio/release/linux-amd64/minio"
+MC_BINARY_URL: "https://dl.min.io/client/mc/release/linux-amd64/mc"
+MINIO_DATA_DIR: /data/minio
+MINIO_API_PORT: 9000
+MINIO_CONSOLE_PORT: 9001
