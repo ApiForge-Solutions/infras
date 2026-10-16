@@ -1,2 +1,5 @@
 ---
 # defaults file for monitoring
+PROMETHEUS_RETENTION_TIME: 7d
+PROMETHEUS_RETENTION_SIZE: 3GB
+GRAFANA_KEYRING: /etc/apt/keyrings/grafana.asc
