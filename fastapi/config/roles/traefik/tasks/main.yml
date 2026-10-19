@@ -57,7 +57,9 @@
         coredns_hosts_block: |-
           hosts {
               {{ TRAEFIK_LB_IP }} traefik.{{ TERRAFORM_APP_DOMAIN }}
-              {{ TRAEFIK_LB_IP }} test.{{ TERRAFORM_APP_DOMAIN }}
+              "{{ hostvars['jenkins_server'].ansible_host }}" jenkins.{{ TERRAFORM_APP_DOMAIN }}
+              "{{ hostvars['monitoring_server'].ansible_host }}" monitoring-prometheus.{{ TERRAFORM_APP_DOMAIN }}
+              "{{ hostvars['monitoring_server'].ansible_host }}" monitoring-grafana.{{ TERRAFORM_APP_DOMAIN }}
               {{ TRAEFIK_LB_IP }} {{ TERRAFORM_API_SUBDOMAIN }}.{{ TERRAFORM_APP_DOMAIN }}
               fallthrough
           }
@@ -140,6 +142,12 @@
         wait: true
         kubeconfig: "{{ KUBECONFIG_PATH }}"
       no_log: true
+
+    - name: Expose the external services through Traefik
+      kubernetes.core.k8s:
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        state: present
+        definition: "{{ lookup('template', 'external-services.yml.j2') }}"
 
     - name: Remove rendered values for security
       ansible.builtin.file:
