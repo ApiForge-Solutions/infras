@@ -76,6 +76,14 @@
           isDefault: true
   notify: restart grafana
 
+- name: Set the Grafana public URL
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    insertafter: '^\[server\]'
+    regexp: '^;?root_url\s*='
+    line: "root_url = https://grafana.{{ TERRAFORM_APP_DOMAIN }}/"
+  notify: restart grafana
+
 - name: Start and enable the services
   ansible.builtin.systemd:
     name: "{{ item }}"
