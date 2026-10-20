@@ -98,15 +98,59 @@
         ]
       }
 
-- name: Create the bucket, the Velero user and attach its policy
+#- name: Create the bucket, the Velero user and attach its policy
+#  ansible.builtin.shell: |
+#    set -e
+#    mc alias set local http://127.0.0.1:{{ MINIO_API_PORT }} "{{ MINIO_ROOT_USER }}" "{{ MINIO_ROOT_PASSWORD }}"
+#    mc mb --ignore-existing local/{{ BUCKET_NAME }}
+#    mc admin user add local "{{ VELERO_S3_USER }}" "{{ VELERO_S3_PASSWORD }}"
+#    mc admin policy create local velero /etc/minio-velero-policy.json || mc admin policy add local velero /etc/minio-velero-policy.json
+#    mc admin policy attach local velero --user "{{ VELERO_S3_USER }}" || mc admin policy set local velero user="{{ VELERO_S3_USER }}"
+#  environment:
+#    HOME: /root
+#  no_log: true
+#  changed_when: false
+
+
+
+
+
+  - name: Create the bucket, the Velero user and attach its policy
   ansible.builtin.shell: |
-    set -e
-    mc alias set local http://127.0.0.1:{{ MINIO_API_PORT }} "{{ MINIO_ROOT_USER }}" "{{ MINIO_ROOT_PASSWORD }}"
-    mc mb --ignore-existing local/{{ BUCKET_NAME }}
-    mc admin user add local "{{ VELERO_S3_USER }}" "{{ VELERO_S3_PASSWORD }}"
-    mc admin policy create local velero /etc/minio-velero-policy.json || mc admin policy add local velero /etc/minio-velero-policy.json
-    mc admin policy attach local velero --user "{{ VELERO_S3_USER }}" || mc admin policy set local velero user="{{ VELERO_S3_USER }}"
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+      mc alias set local "http://127.0.0.1:$API_PORT" "$ROOT_USER" "$ROOT_PASS" >/dev/null 2>&1 && break
+      sleep 3
+    done
+    mc alias set local "http://127.0.0.1:$API_PORT" "$ROOT_USER" "$ROOT_PASS" || { echo "STEP 1 failed: alias"; exit 11; }
+    mc mb --ignore-existing "local/$BUCKET" || { echo "STEP 2 failed: bucket"; exit 12; }
+    mc admin user add local "$S3_USER" "$S3_PASS" || { echo "STEP 3 failed: user"; exit 13; }
+    (mc admin policy create local velero /etc/minio-velero-policy.json || mc admin policy add local velero /etc/minio-velero-policy.json) || { echo "STEP 4 failed: policy"; exit 14; }
+    out=$(mc admin policy attach local velero --user "$S3_USER" 2>&1) || {
+      echo "$out" | grep -qi "already" || { echo "$out"; echo "STEP 5 failed: attach"; exit 15; }
+    }
+  args:
+    executable: /bin/bash
   environment:
     HOME: /root
-  no_log: true
+    API_PORT: "{{ MINIO_API_PORT }}"
+    ROOT_USER: "{{ MINIO_ROOT_USER }}"
+    ROOT_PASS: "{{ MINIO_ROOT_PASSWORD }}"
+    BUCKET: "{{ BUCKET_NAME }}"
+    S3_USER: "{{ VELERO_S3_USER }}"
+    S3_PASS: "{{ VELERO_S3_PASSWORD }}"
+  register: minio_setup
+  failed_when: false
   changed_when: false
+  no_log: true
+
+- name: Show what happened (no secrets in this output)
+  ansible.builtin.debug:
+    msg:
+      - "exit code: {{ minio_setup.rc | default('none') }}"
+      - "{{ minio_setup.stdout_lines | default([]) }}"
+      - "{{ minio_setup.stderr_lines | default([]) }}"
+
+- name: Stop if the setup failed
+  ansible.builtin.fail:
+    msg: "MinIO setup failed, see the exit code above."
+  when: minio_setup.rc | default(1) != 0
