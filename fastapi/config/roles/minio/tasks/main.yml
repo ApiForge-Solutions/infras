@@ -98,6 +98,34 @@
         ]
       }
 
+
+- name: Install the MinIO license file
+  ansible.builtin.copy:
+    src: minio.license
+    dest: /etc/minio.license
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+
+- name: Apply the MinIO license
+  ansible.builtin.shell: |
+    mc alias set local "http://127.0.0.1:$API_PORT" "$ROOT_USER" "$ROOT_PASS" >/dev/null 2>&1 || { echo "STEP 0 failed: alias"; exit 10; }
+    mc license update local /etc/minio.license || { echo "STEP L failed: license update"; exit 21; }   # adapt to the syntax from --help
+    mc license info local || true
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: /root
+    API_PORT: "{{ MINIO_API_PORT }}"
+    ROOT_USER: "{{ MINIO_ROOT_USER }}"
+    ROOT_PASS: "{{ MINIO_ROOT_PASSWORD }}"
+  register: minio_license
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+
 #- name: Create the bucket, the Velero user and attach its policy
 #  ansible.builtin.shell: |
 #    set -e
@@ -110,9 +138,6 @@
 #    HOME: /root
 #  no_log: true
 #  changed_when: false
-
-
-
 
 
 - name: Create the bucket, the Velero user and attach its policy
