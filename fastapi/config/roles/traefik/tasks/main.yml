@@ -62,7 +62,7 @@
               fallthrough
           }
       vars:
-        coredns_names: "{{ ['traefik', TERRAFORM_API_SUBDOMAIN] + (EXTERNAL_SERVICES | map(attribute='name') | list) }}"
+        coredns_names: "{{ ['traefik', TERRAFORM_API_SUBDOMAIN] + EXTERNAL_SERVICE_NAMES }}"
 
     - name: Build the updated CoreDNS Corefile
       ansible.builtin.set_fact:
