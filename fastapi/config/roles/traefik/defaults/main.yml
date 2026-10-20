@@ -18,3 +18,8 @@ EXTERNAL_SERVICES:
   - { name: jenkins,               ip: "{{ hostvars['jenkins_server'].ansible_host }}",    port: 8080, protected: true }
   - { name: monitoring-grafana,    ip: "{{ hostvars['monitoring_server'].ansible_host }}", port: 3000 }
   - { name: monitoring-prometheus, ip: "{{ hostvars['monitoring_server'].ansible_host }}", port: 9090, protected: true }
+
+EXTERNAL_SERVICE_NAMES:
+  - jenkins
+  - monitoring-grafana
+  - monitoring-prometheus
