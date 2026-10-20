@@ -48,3 +48,7 @@ MINIO_S3_URL: "http://{{ hostvars['minio_server'].ansible_host }}:9000"
 BUCKET_NAME: velero-backup
 
 ansible_python_interpreter: /usr/bin/python3
+
+ALLOWED_SOURCE_RANGES:
+  - "0.0.0.0/0"       # SECURITY RISK
+  - "10.10.10.0/24"
