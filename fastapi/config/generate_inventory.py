@@ -29,6 +29,17 @@ def main():
     # Supprimer le groupe Proxmox s'il existe
     children.pop("proxmox", None)
 
+    
+
+    # Ajouter le serveur de monitoring en dur
+    children["monitoring"] = {
+        "hosts": {
+            "monitoring_server": {
+                "ansible_host": "10.10.10.107",
+            }
+        }
+    }
+
     # Les IP de inventory.yaml servent de valeurs par défaut.
     # Si Terraform a fourni son JSON, ses valeurs les remplacent.
     if IPS_FILE.is_file():
