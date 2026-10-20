@@ -42,11 +42,11 @@ all:
         minio_server:
           ansible_host: 10.10.10.106
 
-    jenkins:
-      hosts:
-        jenkins_server:
-          ansible_host: 10.10.10.100
-          ansible_connection: local
+#    jenkins:
+#      hosts:
+#        jenkins_server:
+#          ansible_host: 10.10.10.100
+#          ansible_connection: local
 
     monitoring:
       hosts:
