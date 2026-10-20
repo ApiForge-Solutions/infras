@@ -125,6 +125,17 @@
   changed_when: false
   no_log: true
 
+- name: Show the license result
+  ansible.builtin.debug:
+    msg:
+      - "exit code: {{ minio_license.rc | default('none') }}"
+      - "{{ minio_license.stdout_lines | default([]) }}"
+      - "{{ minio_license.stderr_lines | default([]) }}"
+
+- name: Stop if the license was not accepted
+  ansible.builtin.fail:
+    msg: "MinIO license step failed, see the output above."
+  when: minio_license.rc | default(1) != 0
 
 #- name: Create the bucket, the Velero user and attach its policy
 #  ansible.builtin.shell: |
