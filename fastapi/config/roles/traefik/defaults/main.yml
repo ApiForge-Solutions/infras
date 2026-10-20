@@ -13,3 +13,8 @@ TRAEFIK_MEMORY_REQUEST: "128Mi"
 TRAEFIK_CPU_LIMIT: "500m"
 TRAEFIK_MEMORY_LIMIT: "512Mi"
 TERRAFORM_API_SUBDOMAIN: "api-demo"
+
+EXTERNAL_SERVICES:
+  - { name: jenkins,               ip: "{{ hostvars['jenkins_server'].ansible_host }}",    port: 8080, protected: true }
+  - { name: monitoring-grafana,    ip: "{{ hostvars['monitoring_server'].ansible_host }}", port: 3000 }
+  - { name: monitoring-prometheus, ip: "{{ hostvars['monitoring_server'].ansible_host }}", port: 9090, protected: true }

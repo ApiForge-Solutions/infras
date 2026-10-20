@@ -56,13 +56,13 @@
       ansible.builtin.set_fact:
         coredns_hosts_block: |-
           hosts {
-              {{ TRAEFIK_LB_IP }} traefik.{{ TERRAFORM_APP_DOMAIN }}
-              "{{ hostvars['jenkins_server'].ansible_host }}" jenkins.{{ TERRAFORM_APP_DOMAIN }}
-              "{{ hostvars['monitoring_server'].ansible_host }}" monitoring-prometheus.{{ TERRAFORM_APP_DOMAIN }}
-              "{{ hostvars['monitoring_server'].ansible_host }}" monitoring-grafana.{{ TERRAFORM_APP_DOMAIN }}
-              {{ TRAEFIK_LB_IP }} {{ TERRAFORM_API_SUBDOMAIN }}.{{ TERRAFORM_APP_DOMAIN }}
+          {% for n in coredns_names %}
+              {{ TRAEFIK_LB_IP }} {{ n }}.{{ TERRAFORM_APP_DOMAIN }}
+          {% endfor %}
               fallthrough
           }
+      vars:
+        coredns_names: "{{ ['traefik', TERRAFORM_API_SUBDOMAIN] + (EXTERNAL_SERVICES | map(attribute='name') | list) }}"
 
     - name: Build the updated CoreDNS Corefile
       ansible.builtin.set_fact:
@@ -147,9 +147,10 @@
       kubernetes.core.k8s:
         kubeconfig: "{{ KUBECONFIG_PATH }}"
         state: present
-        definition: "{{ lookup('template', 'external-services.yml.j2') }}"
+        definition: "{{ lookup('template', 'external-services.yml.j2') | from_yaml_all | list }}"
 
-    - name: Remove rendered values for security
+  always:
+    - name: Remove rendered values for security 
       ansible.builtin.file:
         path: /tmp/traefik-values.yml
         state: absent
