@@ -29,15 +29,7 @@ def main():
     # Supprimer le groupe Proxmox s'il existe
     children.pop("proxmox", None)
 
-    # Ajouter Jenkins en dur
-    children["jenkins"] = {
-        "hosts": {
-            "jenkins_server": {
-                "ansible_host": "10.10.10.100",
-                "ansible_connection": "local",
-            }
-        }
-    }
+    
 
     # Ajouter le serveur de monitoring en dur
     children["monitoring"] = {
