@@ -48,6 +48,18 @@
         repo_url: https://vmware-tanzu.github.io/helm-charts
         force_update: true
 
+    - name: Clean up any failed release or hook jobs from previous attempts
+      ansible.builtin.shell: |
+        helm -n {{ VELERO_NAMESPACE }} uninstall velero 2>/dev/null || true
+        kubectl -n {{ VELERO_NAMESPACE }} delete job velero-upgrade-crds --ignore-not-found=true
+      changed_when: false
+
+    - name: Install the Velero CRDs directly from the chart
+      ansible.builtin.shell: >
+        helm show crds vmware-tanzu/velero --version {{ VELERO_CHART_VERSION }}
+        | kubectl apply -f -
+      changed_when: false
+
     - name: Deploy Velero via Helm
       kubernetes.core.helm:
         name: velero
@@ -59,6 +71,7 @@
         wait: true
         wait_timeout: 10m
         values:
+          upgradeCRDs: false
           snapshotsEnabled: false
           credentials:
             existingSecret: minio-credentials
