@@ -10,3 +10,8 @@
   ansible.builtin.systemd:
     name: grafana-server
     state: restarted
+
+- name: restart alertmanager
+  ansible.builtin.systemd:
+    name: prometheus-alertmanager
+    state: restarted

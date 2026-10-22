@@ -92,3 +92,40 @@
   loop:
     - prometheus
     - grafana-server
+
+######################### Alert Manager #########################
+
+- name: Install Alertmanager
+  ansible.builtin.apt:
+    name: prometheus-alertmanager
+    state: present
+
+- name: Create the rules directory
+  ansible.builtin.file:
+    path: /etc/prometheus/rules
+    state: directory
+    mode: '0755'
+
+- name: Install the alert rules
+  ansible.builtin.copy:
+    src: alerts.yml
+    dest: /etc/prometheus/rules/alerts.yml
+    mode: '0644'
+    validate: promtool check rules %s
+  notify: restart prometheus
+
+- name: Configure Alertmanager
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: /etc/prometheus/alertmanager.yml
+    owner: root
+    group: prometheus
+    mode: '0640'
+  no_log: true
+  notify: restart alertmanager
+
+- name: Start Alertmanager
+  ansible.builtin.systemd:
+    name: prometheus-alertmanager
+    state: started
+    enabled: true
