@@ -45,4 +45,7 @@ variable "disk_datastore_id" {
 variable "ubuntu_image_id" {
   type = string
 }
-
+variable "ip_address" {
+  type    = string
+  default = "dhcp"
+}
