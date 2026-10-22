@@ -52,3 +52,11 @@ ansible_python_interpreter: /usr/bin/python3
 ALLOWED_SOURCE_RANGES:
   - "0.0.0.0/0"       # SECURITY RISK
   - "10.10.10.0/24"
+
+
+# ALERT VARS
+ALERT_EMAIL_TO: "apiforgesolutions@gmail.com"        # receiver
+ALERT_SMTP_HOST: smtp.gmail.com
+ALERT_SMTP_PORT: 587
+ALERT_SMTP_FROM: "apiforgesolutions@gmail.com"       
+ALERT_SMTP_USER: "apiforgesolutions@gmail.com"
