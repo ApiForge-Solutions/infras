@@ -1,4 +1,5 @@
 **Infrastructure ApiForge Solutions**
+-------------------------------------------
 
 Provisionnement et configuration automatisés d'une plateforme Kubernetes haute disponibilité sur un hyperviseur Proxmox, centrée sur Traefik, qui héberge une application FastAPI (backend, frontend, PostgreSQL).
 
@@ -10,8 +11,8 @@ Internet ──► Proxmox (DNAT 80/443) ──► 10.10.10.200 (MetalLB) ──
 
 **API Kubernetes :** Virtual IP kube-vip 10.10.10.99
 
-
 **Composant	Rôle :**
+-------------------------------------------
 
 3 masters + 2 workers	Cluster Kubernetes HA (etcd empilé)	kubeadm, containerd, Calico
 VIP de l'API	Point d'entrée unique du control plane	kube-vip (ARP)
@@ -35,6 +36,7 @@ outils_admin/
 **Rôles Ansible** : k8s, k8s-master, k8s-worker, helm, metallb, cert-manager, traefik, velero, minio, monitoring, node-exporter, argocd, proxmox-traffic.
 
 **Prérequis**
+-------------------------------------------
 
 Un nœud Proxmox avec un accès API (jeton) et un modèle de VM Ubuntu.
 Une machine de contrôle avec Terraform, Python 3, Ansible (voir fastapi/config/install_ansible.sh), kubectl et helm.
@@ -42,10 +44,11 @@ Un nom de domaine dont les enregistrements A pointent vers l'IP publique de Prox
 Une paire de clés SSH.
 
 **Secrets**
+-------------------------------------------
 
 Aucun secret ne doit être commité en clair.
 
-**Secret - localisation**
+**Localisation :**
 
 Mots de passe Dashboard Traefik, Grafana, MinIO, Velero, SMTP	fastapi/config/group_vars/all/vault.yml (Ansible Vault)
 Mot de passe du vault	Credential Jenkins ansible-vault-password
@@ -55,7 +58,9 @@ Secrets applicatifs	Credentials Jenkins postgres-user, postgres-password, first-
 
 Éditer le vault : ansible-vault edit fastapi/config/group_vars/all/vault.yml --ask-vault-pass
 
+
 **Installation**
+-------------------------------------------
 
 Option A — via Jenkins (recommandé)
 Installer Jenkins : voir outils_admin/ (Terraform puis Ansible).
