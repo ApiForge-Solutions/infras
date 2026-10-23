@@ -1,12 +1,13 @@
-infras — Infrastructure ApiForge Solutions
+Infrastructure ApiForge Solutions
 
 Provisionnement et configuration automatisés d'une plateforme Kubernetes haute disponibilité sur un hyperviseur Proxmox, centrée sur Traefik, qui héberge une application FastAPI (backend, frontend, PostgreSQL).
 
 Chaîne complète : Terraform (VM) → Ansible (cluster et services) → Helm (application), le tout orchestré par Jenkins.
 
 Architecture
-Internet ──► Proxmox (DNAT 80/443) ──► 10.10.10.200 (MetalLB) ──► Traefik ──► frontend / backend ──► PostgreSQL
-                                         API Kubernetes : VIP kube-vip 10.10.10.99
+Internet ──► Proxmox (DNAT 80/443) ──► 10.10.10.200 (MetalLB) ──► Traefik ──► frontend / backend ──► PostgreSQL\n
+API Kubernetes : VIP kube-vip 10.10.10.99\n
+
 Composant	Rôle	Outil
 3 masters + 2 workers	Cluster Kubernetes HA (etcd empilé)	kubeadm, containerd, Calico
 VIP de l'API	Point d'entrée unique du control plane	kube-vip (ARP)
