@@ -5,10 +5,13 @@ Provisionnement et configuration automatisés d'une plateforme Kubernetes haute 
 Chaîne complète : Terraform (VM) → Ansible (cluster et services) → Helm (application), le tout orchestré par Jenkins.
 
 Architecture
-Internet ──► Proxmox (DNAT 80/443) ──► 10.10.10.200 (MetalLB) ──► Traefik ──► frontend / backend ──► PostgreSQL\n
-API Kubernetes : VIP kube-vip 10.10.10.99\n
+Internet ──► Proxmox (DNAT 80/443) ──► 10.10.10.200 (MetalLB) ──► Traefik ──► frontend / backend ──► PostgreSQL
+
+API Kubernetes : VIP kube-vip 10.10.10.99
+
 
 Composant	Rôle	Outil
+
 3 masters + 2 workers	Cluster Kubernetes HA (etcd empilé)	kubeadm, containerd, Calico
 VIP de l'API	Point d'entrée unique du control plane	kube-vip (ARP)
 IP de service	Adresse du load balancer	MetalLB (L2, 10.10.10.200-210)
@@ -31,24 +34,28 @@ outils_admin/
 Rôles Ansible : k8s, k8s-master, k8s-worker, helm, metallb, cert-manager, traefik, velero, minio, monitoring, node-exporter, argocd, proxmox-traffic.
 
 Prérequis
+
 Un nœud Proxmox avec un accès API (jeton) et un modèle de VM Ubuntu.
 Une machine de contrôle avec Terraform, Python 3, Ansible (voir fastapi/config/install_ansible.sh), kubectl et helm.
 Un nom de domaine dont les enregistrements A pointent vers l'IP publique de Proxmox, avec une redirection des ports 80 et 443 vers 10.10.10.200 (nécessaire pour Let's Encrypt HTTP-01).
 Une paire de clés SSH.
+
 Secrets
 
 Aucun secret ne doit être commité en clair.
 
-Secret	Où
+Secret - localisation
+
 Mots de passe Dashboard Traefik, Grafana, MinIO, Velero, SMTP	fastapi/config/group_vars/all/vault.yml (Ansible Vault)
-Mot de passe du vault	Credential Jenkins ansible-vault-password (jamais dans le dépôt)
+Mot de passe du vault	Credential Jenkins ansible-vault-password
 Accès Proxmox	Credentials Jenkins proxmox-endpoint, proxmox-token
 Clés SSH	Credentials Jenkins ssh-public-key, ssh-private-key
 Secrets applicatifs	Credentials Jenkins postgres-user, postgres-password, first-superuser-password, fastapi-secret-key
 
-Éditer le vault : ansible-vault edit fastapi/config/group_vars/all/vault.yml
+Éditer le vault : ansible-vault edit fastapi/config/group_vars/all/vault.yml --ask-vault-pass
 
 Installation
+
 Option A — via Jenkins (recommandé)
 Installer Jenkins : voir outils_admin/ (Terraform puis Ansible).
 Créer les credentials listés ci-dessus.
@@ -56,6 +63,7 @@ Créer un job Pipeline from SCM pointant sur ce dépôt (branche dev).
 Lancer le build. Étapes : build et push des images → terraform apply → génération de l'inventaire → ansible-playbook → helm upgrade --install.
 Option B — à la main
 bash
+
 # 1. VM
 cd fastapi/infra
 export PROXMOX_VE_ENDPOINT=...  PROXMOX_VE_API_TOKEN=...  TF_VAR_ssh_public_key="$(cat ~/.ssh/id_ed25519.pub)"
@@ -96,10 +104,10 @@ Sauvegarde et restauration
 Velero sauvegarde chaque nuit vers MinIO.
 
 Limites connues
-Un seul nœud Proxmox : la haute disponibilité protège des pannes de VM, pas de l'hôte.
-PostgreSQL en instance unique avec volume hostPath (liée à un nœud).
-Vérification des clés SSH désactivée pendant la récupération du kubeconfig par Jenkins (lab).
-Le DNAT sur Proxmox est partagé avec d'autres locataires : ne jamais vider les règles iptables.
-Auteurs et licence
 
-Équipe ApiForge Solutions, projet DataScientest — Ingénieur DevOps. Licence : voir LICENSE.
+- Un seul nœud Proxmox : la haute disponibilité protège des pannes de VM, pas de l'hôte.
+- PostgreSQL en instance unique avec volume hostPath (liée à un nœud).
+- Vérification des clés SSH désactivée pendant la récupération du kubeconfig par Jenkins (lab).
+- Auteurs et licence
+
+Équipe ApiForge Solutions, projet DataScientest — Ingénieur DevOps.
