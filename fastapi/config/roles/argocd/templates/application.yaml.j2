@@ -1,13 +1,9 @@
-# {{ ansible_managed }}
-# Application ArgoCD pour l'environnement {{ env.name }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: {{ env.name }}
   namespace: {{ ARGOCD_NAMESPACE }}
   finalizers:
-    # Sans ce finalizer, supprimer l'Application laisse les ressources
-    # deployees orphelines dans le cluster.
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
@@ -32,9 +28,6 @@ spec:
       prune: true
       selfHeal: true
 {% else %}
-    # Pas de bloc "automated" : la synchronisation se declenche a la main
-    # depuis l'interface ArgoCD. Le deploiement en production reste une
-    # decision humaine.
 {% endif %}
     syncOptions:
       - CreateNamespace=true
