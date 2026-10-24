@@ -1,0 +1,131 @@
+# roles/monitoring/tasks/main.yml
+---
+- name: Install Prometheus
+  ansible.builtin.apt:
+    name: prometheus
+    state: present
+    update_cache: true
+
+- name: Limit Prometheus storage (small disk)
+  ansible.builtin.lineinfile:
+    path: /etc/default/prometheus
+    regexp: '^ARGS='
+    line: 'ARGS="--storage.tsdb.retention.time={{ PROMETHEUS_RETENTION_TIME }} --storage.tsdb.retention.size={{ PROMETHEUS_RETENTION_SIZE }}"'
+  notify: restart prometheus
+
+- name: Write the Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: root
+    group: prometheus
+    mode: '0640'
+    validate: promtool check config %s
+  notify: restart prometheus
+
+- name: Create the keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download the Grafana signing key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: "{{ GRAFANA_KEYRING }}"
+    mode: '0644'
+
+- name: Add the Grafana apt repository
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types: deb
+    uris: https://apt.grafana.com
+    suites: stable
+    components: main
+    signed_by: "{{ GRAFANA_KEYRING }}"
+    state: present
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    update_cache: true
+
+- name: Set the Grafana admin password
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    insertafter: '^\[security\]'
+    regexp: '^;?admin_password\s*='
+    line: "admin_password = {{ GRAFANA_ADMIN_PASSWORD }}"
+  no_log: true
+  notify: restart grafana
+
+- name: Provision the Prometheus data source
+  ansible.builtin.copy:
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    owner: root
+    group: grafana
+    mode: '0640'
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://localhost:9090
+          isDefault: true
+  notify: restart grafana
+
+- name: Set the Grafana public URL
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    insertafter: '^\[server\]'
+    regexp: '^;?root_url\s*='
+    line: "root_url = https://grafana.{{ TERRAFORM_APP_DOMAIN }}/"
+  notify: restart grafana
+
+- name: Start and enable the services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - prometheus
+    - grafana-server
+
+######################### Alert Manager #########################
+
+- name: Install Alertmanager
+  ansible.builtin.apt:
+    name: prometheus-alertmanager
+    state: present
+
+- name: Create the rules directory
+  ansible.builtin.file:
+    path: /etc/prometheus/rules
+    state: directory
+    mode: '0755'
+
+- name: Install the alert rules
+  ansible.builtin.copy:
+    src: alerts.yml
+    dest: /etc/prometheus/rules/alerts.yml
+    mode: '0644'
+    validate: promtool check rules %s
+  notify: restart prometheus
+
+- name: Configure Alertmanager
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: /etc/prometheus/alertmanager.yml
+    owner: root
+    group: prometheus
+    mode: '0640'
+  no_log: true
+  notify: restart alertmanager
+
+- name: Start Alertmanager
+  ansible.builtin.systemd:
+    name: prometheus-alertmanager
+    state: started
+    enabled: true

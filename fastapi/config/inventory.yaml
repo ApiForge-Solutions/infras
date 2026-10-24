@@ -1,0 +1,54 @@
+all:
+
+  vars:
+    ansible_user: ubuntu
+    KUBECONFIG_PATH: /etc/kubernetes/admin.conf
+    ansible_connection: ssh
+    #ansible_ssh_private_key_file: /home/ubuntu/.ssh/id_ed25519
+    #ansible_ssh_common_args: '-o ProxyCommand="ssh -i /home/ubuntu/.ssh/id_ed25519 -o IdentitiesOnly=yes -W %h:%p root@151.115.96.129"'
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+  children:
+
+    k8s_masters:
+      hosts:
+        master_01:
+          ansible_host: 10.10.10.103
+        master_02:
+          ansible_host: 10.10.10.104
+        master_03:
+          ansible_host: 10.10.10.105
+
+    k8s_workers:
+      hosts:
+        worker_01:
+          ansible_host: 10.10.10.101
+        worker_02:
+          ansible_host: 10.10.10.102
+
+    k8s_global:
+      children:
+        k8s_masters:
+        k8s_workers:
+
+    #proxmox:
+     # hosts:
+      #  proxmox_host:
+       #   ansible_host: 10.10.10.1
+        #  ansible_user: root
+
+    minio:
+      hosts:
+        minio_server:
+          ansible_host: 10.10.10.106
+
+#    jenkins:
+#      hosts:
+#        jenkins_server:
+#          ansible_host: 10.10.10.100
+#          ansible_connection: local
+
+    monitoring:
+      hosts:
+        monitoring_server:
+          ansible_host: 10.10.10.107

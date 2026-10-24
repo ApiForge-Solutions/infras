@@ -1,0 +1,7 @@
+# roles/traefik/vars/main.yml
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for traefik
+
+TRAEFIK_LOG_LEVEL: INFO
+TRAEFIK_NAMESPACE: traefik

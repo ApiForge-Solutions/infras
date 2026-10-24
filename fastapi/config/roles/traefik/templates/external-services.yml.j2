@@ -1,0 +1,69 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: allowlist
+  namespace: {{ TRAEFIK_NAMESPACE }}
+spec:
+  ipAllowList:
+    sourceRange:
+{% for r in ALLOWED_SOURCE_RANGES %}
+      - {{ r }}
+{% endfor %}
+{% for s in EXTERNAL_SERVICES %}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ s.name }}
+  namespace: {{ TRAEFIK_NAMESPACE }}
+spec:
+  ports:
+    - port: {{ s.port }}
+      targetPort: {{ s.port }}
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: {{ s.name }}
+  namespace: {{ TRAEFIK_NAMESPACE }}
+subsets:
+  - addresses:
+      - ip: {{ s.ip }}
+    ports:
+      - port: {{ s.port }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ s.name }}-tls
+  namespace: {{ TRAEFIK_NAMESPACE }}
+spec:
+  secretName: {{ s.name }}-tls
+  dnsNames:
+    - {{ s.name }}.{{ TERRAFORM_APP_DOMAIN }}
+  issuerRef:
+    name: {{ LETSENCRYPT_ISSUER }}
+    kind: ClusterIssuer
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ s.name }}
+  namespace: {{ TRAEFIK_NAMESPACE }}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`{{ s.name }}.{{ TERRAFORM_APP_DOMAIN }}`)
+      kind: Rule
+{% if s.protected | default(false) %}
+      middlewares:
+        - name: allowlist
+{% endif %}
+      services:
+        - name: {{ s.name }}
+          port: {{ s.port }}
+  tls:
+    secretName: {{ s.name }}-tls
+{% endfor %}

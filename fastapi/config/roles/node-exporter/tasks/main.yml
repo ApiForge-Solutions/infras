@@ -1,0 +1,28 @@
+# roles/node-exporter/tasks/main.yml
+---
+- name: Wait until no other apt or dpkg process is running
+  ansible.builtin.shell: |
+    while fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock >/dev/null 2>&1; do
+      sleep 5
+    done
+  changed_when: false
+  timeout: 600
+
+- name: Install node_exporter
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    lock_timeout: 300
+  register: apt_result
+  until: apt_result is succeeded
+  retries: 5
+  delay: 20
+
+
+- name: Enable and start it
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    state: started
+    enabled: true

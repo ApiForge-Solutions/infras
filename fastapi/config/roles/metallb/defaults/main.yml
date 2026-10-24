@@ -1,0 +1,8 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for metallb
+
+METALLB_REPO_URL: https://metallb.github.io/metallb
+
+METALLB_NAMESPACE: metallb-system
+METALLB_VERSION: "0.14.9"

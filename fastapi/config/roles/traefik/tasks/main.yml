@@ -1,0 +1,156 @@
+# roles/traefik/tasks/main.yml
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for traefik
+
+- name: Deploy Traefik (first master only)
+  run_once: true
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  environment:
+    KUBECONFIG: "{{ KUBECONFIG_PATH }}"
+  block:
+
+    - name: Create traefik namespace
+      kubernetes.core.k8s:
+        name: "{{ TRAEFIK_NAMESPACE }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+
+    - name: Add Traefik Helm repo
+      kubernetes.core.helm_repository:
+        name: traefik
+        repo_url: https://traefik.github.io/charts
+
+    - name: Render Traefik Helm values
+      ansible.builtin.template:
+        src: traefik-values.yml.j2
+        dest: /tmp/traefik-values.yml
+        mode: '0600'
+      no_log: true
+      vars:
+        dashboard_user: "{{ VAULT_DASHBOARD_USER }}"
+        dashboard_password: "{{ VAULT_DASHBOARD_PASSWORD }}"
+        app_domain: "{{ TERRAFORM_APP_DOMAIN }}"
+
+    ################# Start CoreDNS steps
+
+    - name: Read the CoreDNS ConfigMap
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        kind: ConfigMap
+        name: coredns
+        namespace: kube-system
+      register: coredns_cm
+
+    - name: Check the Corefile has the expected layout
+      ansible.builtin.assert:
+        that:
+          - coredns_cm.resources | length == 1
+          - "'    forward .' in coredns_cm.resources[0].data.Corefile"
+        fail_msg: "Unexpected CoreDNS Corefile layout."
+        quiet: true
+
+    - name: Build the required CoreDNS hosts block
+      ansible.builtin.set_fact:
+        coredns_hosts_block: |-
+          hosts {
+          {% for n in coredns_names %}
+              {{ TRAEFIK_LB_IP }} {{ n }}.{{ TERRAFORM_APP_DOMAIN }}
+          {% endfor %}
+              fallthrough
+          }
+      vars:
+        coredns_names: "{{ ['traefik', TERRAFORM_API_SUBDOMAIN] + EXTERNAL_SERVICE_NAMES }}"
+
+    - name: Build the updated CoreDNS Corefile
+      ansible.builtin.set_fact:
+        coredns_updated_corefile: >-
+          {{
+            (
+              coredns_cm.resources[0].data.Corefile
+              | regex_replace(
+                  '(?ms)^    hosts \{.*?^    \}',
+                  coredns_hosts_block | indent(4, true)
+                )
+            )
+            if '    hosts {' in coredns_cm.resources[0].data.Corefile
+            else
+            (
+              coredns_cm.resources[0].data.Corefile.replace(
+                '    forward .',
+                (coredns_hosts_block | indent(4, true)) ~ '\n    forward .',
+                1
+              )
+            )
+          }}
+
+    - name: Apply the CoreDNS host records
+      kubernetes.core.k8s:
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: coredns
+            namespace: kube-system
+          data:
+            Corefile: "{{ coredns_updated_corefile }}"
+      register: coredns_patch
+
+    - name: Restart CoreDNS to apply the configuration
+      ansible.builtin.command:
+        cmd: kubectl --kubeconfig={{ KUBECONFIG_PATH }} -n kube-system rollout restart deployment/coredns
+      when: coredns_patch is changed
+
+    - name: Wait for CoreDNS rollout
+      ansible.builtin.command:
+        cmd: kubectl --kubeconfig={{ KUBECONFIG_PATH }} -n kube-system rollout status deployment/coredns --timeout=120s
+      changed_when: false
+
+    ################## End CoreDNS steps
+
+    - name: Request TLS certificate for the Traefik dashboard
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        definition:
+          apiVersion: cert-manager.io/v1
+          kind: Certificate
+          metadata:
+            name: dashboard-tls
+            namespace: "{{ TRAEFIK_NAMESPACE }}"
+          spec:
+            secretName: dashboard-tls
+            dnsNames:
+              - "traefik.{{ TERRAFORM_APP_DOMAIN }}"
+            issuerRef:
+              name: "{{ LETSENCRYPT_ISSUER }}"
+              kind: ClusterIssuer
+
+    - name: Deploy Traefik via Helm
+      kubernetes.core.helm:
+        name: traefik
+        chart_ref: traefik/traefik
+        release_namespace: "{{ TRAEFIK_NAMESPACE }}"
+        create_namespace: true
+        chart_version: "{{ TRAEFIK_CHART_VERSION }}"
+        values_files:
+          - /tmp/traefik-values.yml
+        wait: true
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+      no_log: true
+
+    - name: Expose the external services through Traefik
+      kubernetes.core.k8s:
+        kubeconfig: "{{ KUBECONFIG_PATH }}"
+        state: present
+        definition: "{{ lookup('template', 'external-services.yml.j2') | from_yaml_all | list }}"
+
+  always:
+    - name: Remove rendered values for security 
+      ansible.builtin.file:
+        path: /tmp/traefik-values.yml
+        state: absent

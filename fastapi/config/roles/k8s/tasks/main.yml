@@ -1,0 +1,210 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for k8s
+
+##### Install Docker and its dependent components.
+
+- name: Install packages that allow apt to be used over HTTPS
+  ansible.builtin.apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
+
+- name: Create keyring directory
+  ansible.builtin.file:
+    path: "{{ DOCKER_KEYRING_PATH }}"
+    state: directory
+    mode: '0755'
+
+- name: Add an apt signing key for Docker
+  ansible.builtin.get_url:
+    url: "{{ DOCKER_SIGNING_KEY }}"
+    dest: "{{ [DOCKER_KEYRING_PATH, DOCKER_KEYRING_FILENAME] | path_join }}"
+    mode: '0644'
+
+- name: Add Docker apt repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: "{{ DOCKER_REPO_URL }}"
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    architectures: "{{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}"
+    signed_by: "{{ [DOCKER_KEYRING_PATH,DOCKER_KEYRING_FILENAME] | path_join }}"
+    state: present
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install docker and its dependecies
+  ansible.builtin.apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+  notify:
+    - docker status
+
+- name: Create default containerd config
+  ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml.generated
+  register: containerd_cfg
+
+- name: Mark containerd config as generated
+  ansible.builtin.file:
+    path: /etc/containerd/.config_generated
+    state: touch
+    mode: '0644'
+  when: containerd_cfg is changed
+
+- name: Set SystemdCgroup
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup = false'
+    replace: 'SystemdCgroup = true'
+#  notify: restart and enable containerd
+
+- name: Restart and enable containerd
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+    enabled: true
+
+- name: Resolve the API endpoint
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\s{{ K8S_API_ENDPOINT | regex_escape }}$'
+    line: "{{ K8S_API_VIP }} {{ K8S_API_ENDPOINT }}"
+    state: present
+
+- name: Wait for containerd socket
+  ansible.builtin.wait_for:
+    path: /run/containerd/containerd.sock
+    state: present
+    timeout: 30
+
+- name: Add user to docker groups
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+### Disable swap.
+
+- name: Create directory for Kubernetes apt keyrings
+  ansible.builtin.file:
+    path: "{{ KUBERNETES_KEYRING_PATH }}"
+    state: directory
+    mode: '0755'
+
+#################################
+
+#- name: Add Kubernetes apt signing key
+#  ansible.builtin.get_url:
+#    url: "{{ KUBERNETES_SIGNING_KEY }}"
+#    dest: "{{ [KUBERNETES_KEYRING_PATH,KUBERNETES_KEYRING_FILENAME] | path_join }}"
+#    mode: '0644'
+
+- name: Download Kubernetes apt signing key
+  ansible.builtin.get_url:
+    url: "{{ KUBERNETES_SIGNING_KEY }}"
+    dest: "/tmp/kubernetes-release-{{ KUBERNETES_VERSION }}.key"
+    mode: '0644'
+
+- name: Install dearmored Kubernetes keyring
+  ansible.builtin.command: >
+    gpg --dearmor --yes
+    -o "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    /tmp/kubernetes-release-"{{ KUBERNETES_VERSION }}".key
+  args:
+    creates: "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+
+- name: Make the keyring readable by apt
+  ansible.builtin.file:
+    path: "{{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}"
+    mode: '0644'
+
+
+################################
+
+- name: Add Kubernetes apt repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/kubernetes.list
+    content: "deb [signed-by={{ [KUBERNETES_KEYRING_PATH, KUBERNETES_KEYRING_FILENAME] | path_join }}] {{ K8S_REPO_URL }} /\n"
+    mode: '0644'
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install Kubernetes binaries
+  ansible.builtin.apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - kubelet
+      - kubeadm
+      - kubectl
+
+- name: Configure crictl endpoint
+  ansible.builtin.copy:
+    dest: /etc/crictl.yaml
+    content: |
+      runtime-endpoint: unix:///run/containerd/containerd.sock
+      image-endpoint: unix:///run/containerd/containerd.sock
+    mode: '0644'
+
+- name: Set node IP fact
+  ansible.builtin.set_fact:
+    node_ip: "{{ ansible_default_ipv4.address }}"
+
+- name: Configure node ip
+  ansible.builtin.lineinfile:
+    path: /etc/default/kubelet
+    line: KUBELET_EXTRA_ARGS=--node-ip="{{ ansible_facts['default_ipv4']['address'] }}"
+  notify:
+    - restart kubelet
+
+### Initialize the Kubernetes cluster.
+
+- name: Load br_netfilter kernel module
+  community.general.modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Ensure br_netfilter loads on boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      br_netfilter
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure Kubernetes networking sysctls
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-kubernetes.conf
+    reload: true
+  loop:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+

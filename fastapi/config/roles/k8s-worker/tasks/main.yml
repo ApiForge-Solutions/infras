@@ -1,0 +1,25 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for k8s-worker
+- name: Create worker join command on the first master
+  ansible.builtin.command: kubeadm token create --print-join-command
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  run_once: true
+  register: worker_join_cmd
+  changed_when: false
+
+- name: Join the cluster as a worker
+  ansible.builtin.command: >
+    {{ worker_join_cmd.stdout }}
+    --node-name={{ ansible_facts['hostname'] }}
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+
+- name: Label the node as a worker
+  ansible.builtin.command: >
+    kubectl label node {{ ansible_facts['hostname'] }}
+    node-role.kubernetes.io/worker= --overwrite
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  delegate_to: "{{ groups['k8s_masters'][0] }}"
+  changed_when: false

@@ -1,0 +1,45 @@
+# {{ ansible_managed }}
+# Application ArgoCD pour l'environnement {{ env.name }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ env.name }}
+  namespace: {{ ARGOCD_NAMESPACE }}
+  finalizers:
+    # Sans ce finalizer, supprimer l'Application laisse les ressources
+    # deployees orphelines dans le cluster.
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: {{ ARGOCD_REPO_URL }}
+    targetRevision: {{ ARGOCD_REPO_REVISION }}
+    path: {{ ARGOCD_CHART_PATH }}
+    helm:
+      valueFiles:
+        - {{ env.values_file }}
+
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: {{ env.namespace }}
+
+  syncPolicy:
+{% if env.auto_sync %}
+    automated:
+      # prune supprime du cluster ce qui disparait du depot.
+      # selfHeal annule toute modification faite a la main par kubectl.
+      prune: true
+      selfHeal: true
+{% else %}
+    # Pas de bloc "automated" : la synchronisation se declenche a la main
+    # depuis l'interface ArgoCD. Le deploiement en production reste une
+    # decision humaine.
+{% endif %}
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2

@@ -1,0 +1,23 @@
+# roles/traefik/defaults/main.yml
+#SPDX-License-Identifier: MIT-0
+---
+# safe-to-override defaults for traefik
+
+TRAEFIK_VERSION: "v3.3.2"
+TRAEFIK_CHART_VERSION: "33.2.1"
+TRAEFIK_REPLICAS: 2
+LETSENCRYPT_ISSUER: letsencrypt-staging   # switch to letsencrypt-prod once validated
+
+TRAEFIK_CPU_REQUEST: "100m"
+TRAEFIK_MEMORY_REQUEST: "128Mi"
+TRAEFIK_CPU_LIMIT: "500m"
+TRAEFIK_MEMORY_LIMIT: "512Mi"
+TERRAFORM_API_SUBDOMAIN: "api-demo"
+
+EXTERNAL_SERVICES:
+  - { name: monitoring-grafana,    ip: "{{ hostvars['monitoring_server'].ansible_host }}", port: 3000 }
+  - { name: monitoring-prometheus, ip: "{{ hostvars['monitoring_server'].ansible_host }}", port: 9090, protected: true }
+
+EXTERNAL_SERVICE_NAMES:
+  - monitoring-grafana
+  - monitoring-prometheus

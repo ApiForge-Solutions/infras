@@ -1,0 +1,59 @@
+#- name: Public entry point config on the Proxmox host
+ # hosts: proxmox
+ # roles:
+  #  - proxmox-traffic
+
+- name: Metrics agents
+  hosts: k8s_global:minio:monitoring:jenkins
+  become: true
+  roles:
+    - node-exporter
+
+- name: Monitoring server
+  hosts: monitoring
+  become: true
+  roles:
+    - monitoring
+
+- name: Kubernetes global config
+  hosts: k8s_global
+  become: true
+  roles:
+    - k8s
+
+- name: Kubernetes masters config
+  hosts: k8s_masters
+  become: true
+  any_errors_fatal: true
+  roles:
+    - k8s-master
+    - helm
+
+- name: Kubernetes workers config
+  hosts: k8s_workers
+  become: true
+  any_errors_fatal: true
+  roles:
+    - k8s-worker
+
+- name: Install MinIO
+  hosts: minio
+  become: true
+  roles:
+    - minio
+
+- name: Cluster add-ons
+  hosts: k8s_masters
+  become: true
+  pre_tasks:
+    - name: Wait for all nodes to be Ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready nodes --all --timeout=300s
+      environment:
+        KUBECONFIG: "{{ KUBECONFIG_PATH }}"
+      run_once: true
+      changed_when: false
+  roles:
+    - metallb
+    - cert-manager
+    - traefik
+    - velero

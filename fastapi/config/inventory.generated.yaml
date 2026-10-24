@@ -1,0 +1,28 @@
+all:
+  vars:
+    ansible_user: ubuntu
+    ansible_connection: ssh
+    ansible_ssh_common_args: -o StrictHostKeyChecking=no
+  children:
+    k8s_masters:
+      hosts:
+        master_01:
+          ansible_host: 10.10.10.103
+        master_02:
+          ansible_host: 10.10.10.104
+        master_03:
+          ansible_host: 10.10.10.105
+    k8s_workers:
+      hosts:
+        worker_01:
+          ansible_host: 10.10.10.101
+        worker_02:
+          ansible_host: 10.10.10.102
+    k8s_global:
+      children:
+        k8s_masters: null
+        k8s_workers: null
+    minio:
+      hosts:
+        minio_server:
+          ansible_host: 10.10.10.106

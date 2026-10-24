@@ -1,0 +1,192 @@
+# roles/minio/tasks/main.yml
+---
+- name: Create the minio system user
+  ansible.builtin.user:
+    name: minio-user
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Create the data directory
+  ansible.builtin.file:
+    path: "{{ MINIO_DATA_DIR }}"
+    state: directory
+    owner: minio-user
+    group: minio-user
+    mode: '0750'
+
+- name: Download the MinIO server binary
+  ansible.builtin.get_url:
+    url: "{{ MINIO_BINARY_URL }}"
+    dest: /usr/local/bin/minio
+    mode: '0755'
+
+- name: Download the mc client
+  ansible.builtin.get_url:
+    url: "{{ MC_BINARY_URL }}"
+    dest: /usr/local/bin/mc
+    mode: '0755'
+
+- name: Write the MinIO environment file
+  ansible.builtin.copy:
+    dest: /etc/default/minio
+    owner: root
+    group: minio-user
+    mode: '0640'
+    content: |
+      MINIO_ROOT_USER={{ MINIO_ROOT_USER }}
+      MINIO_ROOT_PASSWORD={{ MINIO_ROOT_PASSWORD }}
+      MINIO_VOLUMES={{ MINIO_DATA_DIR }}
+      MINIO_OPTS="--address :{{ MINIO_API_PORT }} --console-address :{{ MINIO_CONSOLE_PORT }}"
+      MINIO_PROMETHEUS_AUTH_TYPE=public
+  no_log: true
+  notify: restart minio
+
+- name: Install the systemd unit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/minio.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=MinIO
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      User=minio-user
+      Group=minio-user
+      EnvironmentFile=/etc/default/minio
+      ExecStart=/usr/local/bin/minio server $MINIO_OPTS $MINIO_VOLUMES
+      Restart=always
+      LimitNOFILE=65536
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: restart minio
+
+- name: Start and enable MinIO
+  ansible.builtin.systemd:
+    name: minio
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Wait for the S3 port
+  ansible.builtin.wait_for:
+    port: "{{ MINIO_API_PORT }}"
+    timeout: 60
+
+- name: Write the Velero policy
+  ansible.builtin.copy:
+    dest: /etc/minio-velero-policy.json
+    mode: '0600'
+    content: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject",
+                       "s3:AbortMultipartUpload", "s3:ListMultipartUploadParts"],
+            "Resource": ["arn:aws:s3:::{{ BUCKET_NAME }}/*"]
+          },
+          {
+            "Effect": "Allow",
+            "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+            "Resource": ["arn:aws:s3:::{{ BUCKET_NAME }}"]
+          }
+        ]
+      }
+
+
+- name: Install the MinIO license file
+  ansible.builtin.copy:
+    src: minio.license
+    dest: /etc/minio.license
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+
+- name: Apply the MinIO license
+  ansible.builtin.shell: |
+    mc alias set local "http://127.0.0.1:$API_PORT" "$ROOT_USER" "$ROOT_PASS" >/dev/null 2>&1 || { echo "STEP 0 failed: alias"; exit 10; }
+    mc license update local /etc/minio.license || { echo "STEP L failed: license update"; exit 21; }   # adapt to the syntax from --help
+    mc license info local || true
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: /root
+    API_PORT: "{{ MINIO_API_PORT }}"
+    ROOT_USER: "{{ MINIO_ROOT_USER }}"
+    ROOT_PASS: "{{ MINIO_ROOT_PASSWORD }}"
+  register: minio_license
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+- name: Show the license result
+  ansible.builtin.debug:
+    msg:
+      - "exit code: {{ minio_license.rc | default('none') }}"
+      - "{{ minio_license.stdout_lines | default([]) }}"
+      - "{{ minio_license.stderr_lines | default([]) }}"
+
+- name: Stop if the license was not accepted
+  ansible.builtin.fail:
+    msg: "MinIO license step failed, see the output above."
+  when: minio_license.rc | default(1) != 0
+
+#- name: Create the bucket, the Velero user and attach its policy
+#  ansible.builtin.shell: |
+#    set -e
+#    mc alias set local http://127.0.0.1:{{ MINIO_API_PORT }} "{{ MINIO_ROOT_USER }}" "{{ MINIO_ROOT_PASSWORD }}"
+#    mc mb --ignore-existing local/{{ BUCKET_NAME }}
+#    mc admin user add local "{{ VELERO_S3_USER }}" "{{ VELERO_S3_PASSWORD }}"
+#    mc admin policy create local velero /etc/minio-velero-policy.json || mc admin policy add local velero /etc/minio-velero-policy.json
+#    mc admin policy attach local velero --user "{{ VELERO_S3_USER }}" || mc admin policy set local velero user="{{ VELERO_S3_USER }}"
+#  environment:
+#    HOME: /root
+#  no_log: true
+#  changed_when: false
+
+
+- name: Create the bucket, the Velero user and attach its policy
+  ansible.builtin.shell: |
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+      mc alias set local "http://127.0.0.1:$API_PORT" "$ROOT_USER" "$ROOT_PASS" >/dev/null 2>&1 && break
+      sleep 3
+    done
+    mc alias set local "http://127.0.0.1:$API_PORT" "$ROOT_USER" "$ROOT_PASS" || { echo "STEP 1 failed: alias"; exit 11; }
+    mc mb --ignore-existing "local/$BUCKET" || { echo "STEP 2 failed: bucket"; exit 12; }
+    mc admin user add local "$S3_USER" "$S3_PASS" || { echo "STEP 3 failed: user"; exit 13; }
+    (mc admin policy create local velero /etc/minio-velero-policy.json || mc admin policy add local velero /etc/minio-velero-policy.json) || { echo "STEP 4 failed: policy"; exit 14; }
+    out=$(mc admin policy attach local velero --user "$S3_USER" 2>&1) || {
+      echo "$out" | grep -qi "already" || { echo "$out"; echo "STEP 5 failed: attach"; exit 15; }
+    }
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: /root
+    API_PORT: "{{ MINIO_API_PORT }}"
+    ROOT_USER: "{{ MINIO_ROOT_USER }}"
+    ROOT_PASS: "{{ MINIO_ROOT_PASSWORD }}"
+    BUCKET: "{{ BUCKET_NAME }}"
+    S3_USER: "{{ VELERO_S3_USER }}"
+    S3_PASS: "{{ VELERO_S3_PASSWORD }}"
+  register: minio_setup
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+- name: Show what happened (no secrets in this output)
+  ansible.builtin.debug:
+    msg:
+      - "exit code: {{ minio_setup.rc | default('none') }}"
+      - "{{ minio_setup.stdout_lines | default([]) }}"
+      - "{{ minio_setup.stderr_lines | default([]) }}"
+
+- name: Stop if the setup failed
+  ansible.builtin.fail:
+    msg: "MinIO setup failed, see the exit code above."
+  when: minio_setup.rc | default(1) != 0

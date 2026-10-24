@@ -1,0 +1,12 @@
+- name: Install Python prerequisites for kubernetes.core
+  ansible.builtin.apt:
+    name:
+      - python3-pip
+      - python3-yaml
+      - python3-jsonpatch
+    state: present
+
+- name: Install the kubernetes Python client
+  ansible.builtin.pip:
+    name: "{{ KUBERNETES_PY_SPEC }}"
+    extra_args: --break-system-packages
