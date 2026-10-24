@@ -34,7 +34,7 @@ TERRAFORM_APP_DOMAIN: apiforge.cloud-ip.cc  # Get it from terraform
 
 
 # CERT-MANAGER VARS
-CERT_MANAGER_ACME_EMAIL: apiforgesolutions@gmail.com
+CERT_MANAGER_ACME_EMAIL: "apiforgesolutions@gmx.fr"
 # STORAGE VARS
 MINIO_NAMESPACE: "velero"
 # MONITORING VARS
@@ -55,8 +55,8 @@ ALLOWED_SOURCE_RANGES:
 
 
 # ALERT VARS
-ALERT_EMAIL_TO: "apiforgesolutions@gmail.com"        # receiver
-ALERT_SMTP_HOST: smtp.gmail.com
+ALERT_EMAIL_TO: "apiforgesolutions@gmx.fr"        # receiver
+ALERT_SMTP_HOST: mail.gmx.net
 ALERT_SMTP_PORT: 587
-ALERT_SMTP_FROM: "apiforgesolutions@gmail.com"       
-ALERT_SMTP_USER: "apiforgesolutions@gmail.com"
+ALERT_SMTP_FROM: "apiforgesolutions@gmx.fr"       
+ALERT_SMTP_USER: "apiforgesolutions@gmx.fr"
