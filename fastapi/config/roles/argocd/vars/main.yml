@@ -12,12 +12,12 @@ TRAEFIK_ALLOWLIST_MIDDLEWARE: "traefik-allowlist@kubernetescrd"
 
 ARGOCD_DEPLOY_APPS: false
 
-ARGOCD_REPO_URL: "https://github.com/ApiForge-Solutions/infras.git"
-ARGOCD_REPO_REVISION: "dev"          # branche qui contient fastapi/app/envs/
-ARGOCD_CHART_PATH: "fastapi/app"
+ARGOCD_REPO_URL: "https://github.com/ApiForge-Solutions/manifests.git"
+ARGOCD_REPO_REVISION: "main"          # branche qui contient fastapi/app/envs/
+ARGOCD_CHART_PATH: "chart"
 
 ARGOCD_ENVIRONMENTS:
-  - { name: fastapi-dev,     namespace: fastapi-dev,     values_file: envs/values-dev.yaml,     auto_sync: true }
-  - { name: fastapi-staging, namespace: fastapi-staging, values_file: envs/values-staging.yaml, auto_sync: true }
-  - { name: fastapi-qa,      namespace: fastapi-qa,      values_file: envs/values-qa.yaml,      auto_sync: true }
-  - { name: fastapi-prod,    namespace: fastapi-prod,    values_file: envs/values-prod.yaml,    auto_sync: false }
+  - { name: fastapi-dev,     namespace: dev,     values_file: envs/values-dev.yaml,     auto_sync: true }
+  - { name: fastapi-staging, namespace: staging, values_file: envs/values-staging.yaml, auto_sync: true }
+  - { name: fastapi-qa,      namespace: qa,      values_file: envs/values-qa.yaml,      auto_sync: true }
+  - { name: fastapi-prod,    namespace: prod,    values_file: envs/values-prod.yaml,    auto_sync: false }
