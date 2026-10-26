@@ -1,7 +1,7 @@
 ---
 # tasks file for argocd
 
-- name: Créer le namespace argocd
+- name: Creer le namespace argocd
   kubernetes.core.k8s:
     name: "{{ ARGOCD_NAMESPACE }}"
     api_version: v1
@@ -10,14 +10,14 @@
     kubeconfig: "{{ KUBECONFIG_PATH }}"
   run_once: true
 
-- name: Ajouter le dépôt Helm Argo
+- name: Ajouter le depot Helm Argo
   kubernetes.core.helm_repository:
     name: argo
     repo_url: https://argoproj.github.io/argo-helm
     force_update: true
   run_once: true
 
-- name: Déployer ArgoCD via Helm
+- name: Deployer ArgoCD via Helm
   kubernetes.core.helm:
     name: argocd
     chart_ref: argo/argo-cd
@@ -30,20 +30,49 @@
     values:
       configs:
         params:
+          # Traefik termine le TLS : ArgoCD parle en HTTP derriere.
           server.insecure: true
       server:
         ingress:
           enabled: true
           ingressClassName: traefik
           hostname: "{{ ARGOCD_DOMAIN_NAME }}"
-          annotations:
-            cert-manager.io/cluster-issuer: "{{ CERT_MANAGER_ISSUERS }}"
+          annotations: >-
+            {{
+              {'cert-manager.io/cluster-issuer': ARGOCD_CLUSTER_ISSUER,
+               'traefik.ingress.kubernetes.io/router.entrypoints': 'websecure'}
+              | combine(
+                  {'traefik.ingress.kubernetes.io/router.middlewares': TRAEFIK_ALLOWLIST_MIDDLEWARE}
+                  if ARGOCD_USE_ALLOWLIST else {}
+                )
+            }}
           tls: true
       redis-ha:
         enabled: false
   run_once: true
 
-- name: Déclarer les Applications ArgoCD (un environnement par branche)
+- name: Enregistrer le depot Git prive dans ArgoCD (si un jeton est dans le vault)
+  kubernetes.core.k8s:
+    state: present
+    kubeconfig: "{{ KUBECONFIG_PATH }}"
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: repo-infras
+        namespace: "{{ ARGOCD_NAMESPACE }}"
+        labels:
+          argocd.argoproj.io/secret-type: repository
+      stringData:
+        type: git
+        url: "{{ ARGOCD_REPO_URL }}"
+        username: "{{ VAULT_ARGOCD_REPO_USER | default('git') }}"
+        password: "{{ VAULT_ARGOCD_REPO_TOKEN }}"
+  when: VAULT_ARGOCD_REPO_TOKEN is defined
+  no_log: true
+  run_once: true
+
+- name: Declarer les Applications ArgoCD (un environnement par Application)
   kubernetes.core.k8s:
     state: present
     kubeconfig: "{{ KUBECONFIG_PATH }}"
@@ -52,23 +81,24 @@
   loop_control:
     loop_var: env
     label: "{{ env.name }} -> {{ env.namespace }}"
+  when: ARGOCD_DEPLOY_APPS | bool
   run_once: true
 
-- name: Vérifier que les quatre Applications sont enregistrées
+- name: Verifier que les Applications sont enregistrees
   kubernetes.core.k8s_info:
     api_version: argoproj.io/v1alpha1
     kind: Application
     namespace: "{{ ARGOCD_NAMESPACE }}"
     kubeconfig: "{{ KUBECONFIG_PATH }}"
   register: argocd_apps
-  failed_when: argocd_apps.resources | length < argocd_environments | length
+  failed_when: argocd_apps.resources | length < ARGOCD_ENVIRONMENTS | length
+  when: ARGOCD_DEPLOY_APPS | bool
   run_once: true
 
-- name: Afficher l'état d'ArgoCD
+- name: Afficher l'etat d'ArgoCD
   ansible.builtin.debug:
     msg:
-      - "ArgoCD : https://{{ ARGOCD_DOMAIN_NAME }}"
-      - "Identifiant : admin"
-      - "Applications : {{ argocd_apps.resources | map(attribute='metadata.name') | join(', ') }}"
-      - "Synchronisation manuelle : {{ argocd_environments | rejectattr('auto_sync') | map(attribute='name') | join(', ') }}"
+      - "ArgoCD : https://{{ ARGOCD_DOMAIN_NAME }}  (identifiant : admin)"
+      - "Mot de passe initial : kubectl -n {{ ARGOCD_NAMESPACE }} get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+      - "Applications : {{ 'desactivees (ARGOCD_DEPLOY_APPS=false)' if not (ARGOCD_DEPLOY_APPS | bool) else argocd_apps.resources | map(attribute='metadata.name') | join(', ') }}"
   run_once: true

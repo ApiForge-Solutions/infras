@@ -57,3 +57,4 @@
     - cert-manager
     - traefik
     - velero
+    - argocd
