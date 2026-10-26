@@ -62,7 +62,7 @@
               fallthrough
           }
       vars:
-        coredns_names: "{{ ['traefik', TERRAFORM_API_SUBDOMAIN, 'argocd'] + EXTERNAL_SERVICE_NAMES }}"
+        coredns_names: "{{ ['traefik', TERRAFORM_API_SUBDOMAIN, 'argocd', 'fastapi-dev', 'fastapi-staging', 'fastapi-qa', 'fastapi-prod'] + EXTERNAL_SERVICE_NAMES }}"
 
     - name: Build the updated CoreDNS Corefile
       ansible.builtin.set_fact:
