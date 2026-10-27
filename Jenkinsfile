@@ -24,7 +24,7 @@ stage('Connexion Docker') {
             steps {
                 sh '''
                 echo $DOCKER_HUB_PASS | docker login \
-                -u abzh29 \
+                -u apiforgesolutions \
                 --password-stdin
                 '''
             }
@@ -33,8 +33,8 @@ stage('Connexion Docker') {
             steps {
                 sh '''
                 export DOCKER_BUILDKIT=1
-                docker build -t abzh29/api_traefik:backend ./backend
-                docker build -t abzh29/api_traefik:frontend ./frontend
+                docker build -t apiforgesolutions/api_traefik:backend ./backend
+                docker build -t apiforgesolutions/api_traefik:frontend ./frontend
                 '''
             }
         }
@@ -42,8 +42,8 @@ stage('Connexion Docker') {
         stage('Push Docker') {
             steps {
                 sh '''
-                docker push abzh29/api_traefik:backend
-                docker push abzh29/api_traefik:frontend
+                docker push apiforgesolutions/api_traefik:backend
+                docker push apiforgesolutions/api_traefik:frontend
                 '''
             }
         }
