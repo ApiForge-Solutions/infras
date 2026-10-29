@@ -40,7 +40,7 @@ all:
     minio:
       hosts:
         minio_server:
-          ansible_host: 10.10.10.106
+          ansible_host: 10.10.10.107
 
 #    jenkins:
 #      hosts:
@@ -51,4 +51,4 @@ all:
     monitoring:
       hosts:
         monitoring_server:
-          ansible_host: 10.10.10.107
+          ansible_host: 10.10.10.108

@@ -32,13 +32,13 @@ def main():
     
 
     # Ajouter le serveur de monitoring en dur
-    children["monitoring"] = {
-        "hosts": {
-            "monitoring_server": {
-                "ansible_host": "10.10.10.107",
-            }
-        }
-    }
+    #children["monitoring"] = {
+    #    "hosts": {
+    #        "monitoring_server": {
+    #            "ansible_host": "10.10.10.107",
+    #        }
+    #    }
+    #}
 
     # Les IP de inventory.yaml servent de valeurs par défaut.
     # Si Terraform a fourni son JSON, ses valeurs les remplacent.
@@ -52,6 +52,7 @@ def main():
             ("masters", "k8s_masters"),
             ("workers", "k8s_workers"),
             ("minio", "minio"),
+            ("monitoring", "monitoring"),
         ]:
             if source_group not in ips:
                 sys.exit(
