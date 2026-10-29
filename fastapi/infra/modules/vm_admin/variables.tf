@@ -46,3 +46,7 @@ variable "ubuntu_image_id" {
   type = string
 }
 
+variable "ip_address" {
+  description = "Adresse IP statique de la VM, au format CIDR (ex. 10.10.10.107/24)"
+  type        = string
+}

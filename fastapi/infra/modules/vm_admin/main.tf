@@ -69,3 +69,10 @@ scsi_hardware = "virtio-scsi-single"
     bridge = var.network_bridge
   }
 }
+
+ip_config {
+  ipv4 {
+    address = var.ip_address
+    gateway = var.gateway   
+  }
+}
