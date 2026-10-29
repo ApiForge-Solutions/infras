@@ -51,7 +51,8 @@ scsi_hardware = "virtio-scsi-single"
     datastore_id = var.disk_datastore_id
     ip_config {
   ipv4 {
-     address = "dhcp"
+     address = var.ip_address
+     gateway = var.ip_address == "dhcp" ? null : var.gateway
   }
   
 
@@ -67,12 +68,5 @@ scsi_hardware = "virtio-scsi-single"
 
   network_device {
     bridge = var.network_bridge
-  }
-}
-
-ip_config {
-  ipv4 {
-    address = var.ip_address
-    gateway = var.gateway   
   }
 }

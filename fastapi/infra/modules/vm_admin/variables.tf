@@ -47,6 +47,13 @@ variable "ubuntu_image_id" {
 }
 
 variable "ip_address" {
-  description = "Adresse IP statique de la VM, au format CIDR (ex. 10.10.10.107/24)"
+  description = "Adresse IP de la VM au format CIDR (ex. 10.10.10.107/24) ou dhcp"
   type        = string
+  default     = "dhcp"
+}
+
+variable "gateway" {
+  description = "Passerelle par defaut (utilisee seulement avec une IP statique)"
+  type        = string
+  default     = null
 }
