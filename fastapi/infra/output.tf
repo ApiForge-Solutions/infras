@@ -12,10 +12,10 @@ output "ansible_inventory" {
 
     minio = {
       minio_server = module.vm_Minio.vm_ip
+    }
 
     monitoring = {
       monitoring_server = module.vm_Prometheus.vm_ip
-    }
     }
   }
 }
