@@ -70,7 +70,28 @@ module "vm_Minio" {
   network_bridge                = module.network.vnet_name
   disk_datastore_id             = var.disk_datastore_id
   ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id   
+<<<<<<< HEAD
   ip_address = "10.10.10.107/24"
 }
 
 
+=======
+  ip_address                    = "10.10.10.107/24"
+  gateway                       = module.network.gateway
+}
+
+
+module "vm_Prometheus" {
+  source = "./modules/vm_admin"
+
+  name                          = "Prometheus"
+  vm_id                         = 402
+  virtual_environment_node_name = var.virtual_environment_node_name
+  ssh_public_key                = var.ssh_public_key
+  network_bridge                = module.network.vnet_name
+  disk_datastore_id             = var.disk_datastore_id
+  ubuntu_image_id               = data.proxmox_file.ubuntu_cloud_image.id
+  ip_address                    = "10.10.10.108/24"
+  gateway                       = module.network.gateway
+}
+>>>>>>> dev

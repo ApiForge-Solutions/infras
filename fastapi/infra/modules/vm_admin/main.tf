@@ -52,6 +52,7 @@ scsi_hardware = "virtio-scsi-single"
     ip_config {
   ipv4 {
      address = var.ip_address
+     gateway = var.ip_address == "dhcp" ? null : var.gateway
   }
   
 

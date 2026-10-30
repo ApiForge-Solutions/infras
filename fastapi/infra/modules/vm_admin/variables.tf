@@ -45,7 +45,15 @@ variable "disk_datastore_id" {
 variable "ubuntu_image_id" {
   type = string
 }
+
 variable "ip_address" {
-  type    = string
-  default = "dhcp"
+  description = "Adresse IP de la VM au format CIDR (ex. 10.10.10.107/24) ou dhcp"
+  type        = string
+  default     = "dhcp"
+}
+
+variable "gateway" {
+  description = "Passerelle par defaut (utilisee seulement avec une IP statique)"
+  type        = string
+  default     = null
 }
