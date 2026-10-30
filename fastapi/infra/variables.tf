@@ -64,6 +64,12 @@ variable "memory" {
   default     = 2048
 }
 
+variable "worker_memory" {
+  description = "Mémoire vive des workers Kubernetes (Mo)"
+  type        = number
+  default     = 4096
+}
+
 variable "username" {
   description = "Utilisateur créé par cloud-init"
   type        = string

@@ -10,6 +10,7 @@ worker_count                  = "2"
 master_count                  = "3"
 cpu_cores                     = "2"
 memory                        = "2048"
+worker_memory                 = "4096"
 network_bridge                = "vmbr0"
 username                      = "ubuntu"
 
