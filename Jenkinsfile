@@ -174,3 +174,5 @@ stage('Connexion Docker') {
                         propagate: true
             }
         }
+    }
+}
