@@ -20,6 +20,14 @@
         wait: true
         kubeconfig: "{{ KUBECONFIG_PATH }}"
 
+    - name: Wait for the MetalLB controller to be available
+      ansible.builtin.command: >
+        kubectl -n {{ METALLB_NAMESPACE }} wait deployment/metallb-controller
+        --for=condition=Available --timeout=180s
+      environment:
+        KUBECONFIG: "{{ KUBECONFIG_PATH }}"
+      changed_when: false
+
     - name: Configure IPAddressPool
       kubernetes.core.k8s:
         state: present
