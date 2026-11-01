@@ -6,6 +6,7 @@ Provisionnement et configuration automatisés d'une plateforme Kubernetes haute 
 
 **Chaîne complète :** Terraform (VM) → Ansible (cluster et services) → Helm (application), le tout orchestré par Jenkins.
 
+
 **Architecture**
 
 Internet ──► Proxmox (DNAT 80/443) ──► 10.10.10.200 (MetalLB) ──► Traefik ──► frontend / backend ──► PostgreSQL
