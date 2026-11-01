@@ -3,6 +3,7 @@
 
 Provisionnement et configuration automatisés d'une plateforme Kubernetes haute disponibilité sur un hyperviseur Proxmox, centrée sur Traefik, qui héberge une application FastAPI (backend, frontend, PostgreSQL).
 
+
 **Chaîne complète :** Terraform (VM) → Ansible (cluster et services) → Helm (application), le tout orchestré par Jenkins.
 
 **Architecture**
