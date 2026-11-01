@@ -6,4 +6,7 @@ VELERO_PLUGIN_AWS_IMAGE: "velero/velero-plugin-for-aws:v1.11.0"
 VELERO_SCHEDULE_CRON: "0 2 * * *"
 VELERO_SCHEDULE_TTL: "168h"
 VELERO_BACKUP_NAMESPACES:
-  - fastapi-prod
+# - prod  Commented out for now, as we don't want to backup prod namespaces yet
+  - dev
+  - staging
+  - qa
