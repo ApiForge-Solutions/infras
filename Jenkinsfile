@@ -49,31 +49,33 @@ stage('Connexion Docker') {
         }
 
     
+stage('Install infra terraform ') {
+    steps {
+        dir('infras/fastapi/infra') {
+            withCredentials([
+                string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
+                string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
+                string(credentialsId: 'ssh-public-key', variable: 'SSH_PUBLIC_KEY'),
+                string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+            ]) {
+                sh '''
+                    set -eu
+                    set +x
 
-        stage('Install infra terraform ') {
-            steps {
-                dir('infras/fastapi/infra') {
-                    withCredentials([
-                        string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
-                        string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
-                        string(credentialsId: 'ssh-public-key', variable: 'SSH_PUBLIC_KEY')
-                    ]) {
-                        sh '''
-                            set -eu
-                            set +x
+                    export TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY"
 
-                            export TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY"
+                    terraform init -input=false -migrate-state
+                    terraform validate
+                    terraform apply -auto-approve -var-file=terraform.tfvars
 
-                            terraform init
-                            terraform validate
-                            terraform apply -auto-approve -var-file=terraform.tfvars
-
-                            terraform output -json ansible_inventory > ../config/ansible_inventory.json
-                        '''
-                    }
-                }
+                    terraform output -json ansible_inventory > ../config/ansible_inventory.json
+                '''
             }
         }
+    }
+}
+
 
         stage(' création inventaire pour Ansible') {
             steps {
