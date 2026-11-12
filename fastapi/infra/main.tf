@@ -7,6 +7,19 @@ terraform {
   }
 }
 
+
+
+
+terraform {
+  backend "s3" {
+    bucket       = "tfstateapi"
+    key          = "terraform/terraform.tfstate"
+    region       = "eu-west-3"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
+
 provider "proxmox" {
   
   insecure  = true
