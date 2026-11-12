@@ -56,8 +56,8 @@ stage('Install infra terraform ') {
                 string(credentialsId: 'proxmox-endpoint', variable: 'PROXMOX_VE_ENDPOINT'),
                 string(credentialsId: 'proxmox-token', variable: 'PROXMOX_VE_API_TOKEN'),
                 string(credentialsId: 'ssh-public-key', variable: 'SSH_PUBLIC_KEY'),
-                string(credentialsId: 's3-access-key', variable: 'AWS_ACCESS_KEY_ID'),
-                string(credentialsId: 's3-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                string(credentialsId: 's3_access_key', variable: 'AWS_ACCESS_KEY_ID'),
+                string(credentialsId: 's3_secret_key', variable: 'AWS_SECRET_ACCESS_KEY')
             ]) {
                 sh '''
                     set -eu
