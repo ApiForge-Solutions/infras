@@ -65,7 +65,7 @@ stage('Install infra terraform ') {
 
                     export TF_VAR_ssh_public_key="$SSH_PUBLIC_KEY"
 
-                    terraform init -input=false -migrate-state
+                    terraform init -input=false -migrate-state -force-copy
                     terraform validate
                     terraform apply -auto-approve -var-file=terraform.tfvars
 
