@@ -190,3 +190,39 @@
   ansible.builtin.fail:
     msg: "MinIO setup failed, see the exit code above."
   when: minio_setup.rc | default(1) != 0
+
+- name: Write the DB backup policy
+  ansible.builtin.copy:
+    dest: /etc/minio-dbbackup-policy.json
+    mode: '0600'
+    content: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+            "Resource": ["arn:aws:s3:::{{ DB_BACKUP_BUCKET }}/*"]
+          },
+          {
+            "Effect": "Allow",
+            "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+            "Resource": ["arn:aws:s3:::{{ DB_BACKUP_BUCKET }}"]
+          }
+        ]
+      }
+
+- name: Create the DB backup bucket, user and policy
+  ansible.builtin.shell: |
+    set -e
+    mc alias set local http://127.0.0.1:{{ MINIO_API_PORT }} "{{ MINIO_ROOT_USER }}" "{{ MINIO_ROOT_PASSWORD }}"
+    mc mb --ignore-existing local/{{ DB_BACKUP_BUCKET }}
+    mc admin user add local "{{ DB_BACKUP_S3_USER }}" "{{ DB_BACKUP_S3_PASSWORD }}"
+    mc admin policy create local dbbackup /etc/minio-dbbackup-policy.json || mc admin policy add local dbbackup /etc/minio-dbbackup-policy.json
+    mc admin policy attach local dbbackup --user "{{ DB_BACKUP_S3_USER }}" || mc admin policy set local dbbackup user="{{ DB_BACKUP_S3_USER }}"
+  args:
+    executable: /bin/bash
+  environment:
+    HOME: /root
+  changed_when: false
+  no_log: true
