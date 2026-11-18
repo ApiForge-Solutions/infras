@@ -39,7 +39,7 @@ CERT_MANAGER_ACME_EMAIL: "apiforgesolutions@gmx.fr"
 MINIO_NAMESPACE: "velero"
 # MONITORING VARS
 STORAGE_CLASS: local-path
-GRAFANA_DOMAIN_NAME: "grafana.{{ TERRAFORM_APP_DOMAIN }}"
+GRAFANA_DOMAIN_NAME: "monitoring-grafana.{{ TERRAFORM_APP_DOMAIN }}"   # host served by Traefik (EXTERNAL_SERVICES)
 # CD VARS
 ARGOCD_NAMESPACE: "argocd"
 

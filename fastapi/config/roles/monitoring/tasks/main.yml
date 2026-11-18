@@ -81,7 +81,7 @@
     path: /etc/grafana/grafana.ini
     insertafter: '^\[server\]'
     regexp: '^;?root_url\s*='
-    line: "root_url = https://grafana.{{ TERRAFORM_APP_DOMAIN }}/"
+    line: "root_url = https://{{ GRAFANA_DOMAIN_NAME }}/"
   notify: restart grafana
 
 - name: Start and enable the services
